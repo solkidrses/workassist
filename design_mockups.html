@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TMA Workspace Instructions - Design Mockups</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Shared utilities */
+      --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Reset */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #0b0f19;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    /* Admin Panel for Mockup Control */
+    .mockup-controls {
+      background: rgba(17, 24, 39, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.25rem;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 100;
+    }
+
+    .mockup-controls h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      text-align: center;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-group {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-group button {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      padding: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+
+    .btn-group button.active {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    #theme-switcher.theme-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 3px;
+    }
+
+    #theme-switcher.theme-grid button {
+      min-width: 0;
+      padding: 0.45rem 0.35rem;
+      line-height: 1.15;
+    }
+
+    /* Device Wrapper to mimic Telegram Mini App */
+    .device-container {
+      width: 100%;
+      max-width: 390px;
+      height: 760px;
+      border-radius: 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 10px rgba(31, 41, 55, 0.5);
+      border: 4px solid #1f2937;
+      background: #0b0f17;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* StatusBar Simulator */
+    .status-bar {
+      height: 38px;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.6);
+      background: transparent;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .status-bar .right-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-bar svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* App Content Viewport */
+    .app-viewport {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Dynamic CSS Themes */
+    
+    /* THEME 1: iOS Glassmorphism (Default) */
+    .theme-glass {
+      --bg-gradient: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent 40%), 
+                     radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.1), transparent 40%),
+                     #0f121d;
+      --panel-bg: rgba(255, 255, 255, 0.04);
+      --panel-border: 1px solid rgba(255, 255, 255, 0.08);
+      --panel-blur: blur(20px);
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-gradient: linear-gradient(135deg, #6366f1, #a855f7);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --font-family: 'Plus Jakarta Sans', sans-serif;
+      --border-radius-lg: 20px;
+      --border-radius-md: 12px;
+      --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      
+      background: var(--bg-gradient);
+      font-family: var(--font-family);
+    }
+    .theme-glass .app-header {
+      background: rgba(15, 18, 29, 0.7);
+      backdrop-filter: var(--panel-blur);
+      border-bottom: var(--panel-border);
+      padding: 0.75rem 1.25rem;
+    }
+    .theme-glass .app-nav {
+      background: rgba(15, 18, 29, 0.75);
+      backdrop-filter: var(--panel-blur);
+      border-top: var(--panel-border);
+    }
+    .theme-glass .card {
+      background: var(--panel-bg);
+      backdrop-filter: var(--panel-blur);
+      border: var(--panel-border);
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--card-shadow);
+      padding: 1.25rem;
+      transition: var(--transition-normal);
+    }
+    .theme-glass .chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: var(--panel-border);
+      color: var(--text-muted);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .theme-glass .chip.active {
+      background: var(--accent-gradient);
+      border-color: transparent;
+      color: white;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .theme-glass .input-field {
+      background: rgba(255, 255, 255, 0.05);
+      border: var(--panel-border);
+      border-radius: var(--border-radius-md);
+      color: white;
+      padding: 0.75rem 1rem;
+      font-family: inherit;
+      transition: var(--transition-fast);
+    }
+    .theme-glass .input-field:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+    .theme-glass .chat-bubble.ai {
+      background: rgba(255, 255, 255, 0.05);
+      border: var(--panel-border);
+      border-radius: 4px 16px 16px 16px;
+    }
+    .theme-glass .chat-bubble.user {
+      background: var(--accent-gradient);
+      border-radius: 16px 16px 4px 16px;
+      color: white;
+    }
+
+    /* THEME 2: Cyberpunk Tech (Neo-brutalist Dark) */
+    .theme-cyber {
+      --bg-gradient: none;
+      --panel-bg: #09090b;
+      --panel-border: 1.5px solid #27272a;
+      --panel-blur: none;
+      --accent: #10b981; /* Neon green */
+      --accent-hover: #059669;
+      --accent-gradient: none;
+      --text-main: #fafafa;
+      --text-muted: #71717a;
+      --font-family: 'JetBrains Mono', monospace;
+      --border-radius-lg: 0px;
+      --border-radius-md: 0px;
+      --card-shadow: 4px 4px 0px #27272a;
+      
+      background: #040405;
+      font-family: var(--font-family);
+    }
+    .theme-cyber .app-header {
+      background: #09090b;
+      border-bottom: 2px solid #27272a;
+      padding: 0.75rem 1rem;
+    }
+    .theme-cyber .app-nav {
+      background: #09090b;
+      border-top: 2px solid #27272a;
+    }
+    .theme-cyber .card {
+      background: #09090b;
+      border: var(--panel-border);
+      border-radius: 0;
+      box-shadow: 3px 3px 0px rgba(16, 185, 129, 0.3);
+      padding: 1rem;
+      transition: var(--transition-fast);
+    }
+    .theme-cyber .card:hover {
+      box-shadow: 5px 5px 0px rgba(16, 185, 129, 0.8);
+      border-color: var(--accent);
+    }
+    .theme-cyber .chip {
+      background: transparent;
+      border: 1px solid #27272a;
+      color: var(--text-muted);
+      border-radius: 0;
+      font-size: 0.7rem;
+      padding: 0.3rem 0.6rem;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    .theme-cyber .chip.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #000;
+      box-shadow: 2px 2px 0px rgba(255,255,255,0.1);
+    }
+    .theme-cyber .input-field {
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 0;
+      color: #fff;
+      padding: 0.75rem;
+      font-family: var(--font-family);
+    }
+    .theme-cyber .input-field:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: none;
+    }
+    .theme-cyber .chat-bubble.ai {
+      background: #09090b;
+      border: 1.5px solid #27272a;
+      border-radius: 0;
+      position: relative;
+    }
+    .theme-cyber .chat-bubble.ai::before {
+      content: 'AI';
+      position: absolute;
+      top: -8px;
+      left: 10px;
+      font-size: 0.6rem;
+      background: #27272a;
+      color: #fff;
+      padding: 0 4px;
+    }
+    .theme-cyber .chat-bubble.user {
+      background: #18181b;
+      border: 1.5px solid var(--accent);
+      border-radius: 0;
+      color: #fff;
+    }
+
+    /* THEME 3: Minimalist Aurora */
+    .theme-aurora {
+      --bg-gradient: radial-gradient(circle at 50% -20%, rgba(56, 189, 248, 0.15), transparent 60%), #0d1117;
+      --panel-bg: #161b22;
+      --panel-border: 1px solid #30363d;
+      --panel-blur: none;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --accent-gradient: linear-gradient(135deg, #38bdf8, #818cf8);
+      --text-main: #e6edf3;
+      --text-muted: #8b949e;
+      --font-family: 'Inter', sans-serif;
+      --border-radius-lg: 12px;
+      --border-radius-md: 8px;
+      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      
+      background: var(--bg-gradient);
+      font-family: var(--font-family);
+    }
+    .theme-aurora .app-header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 0.75rem 1.25rem;
+    }
+    .theme-aurora .app-nav {
+      background: #161b22;
+      border-top: 1px solid #30363d;
+    }
+    .theme-aurora .card {
+      background: var(--panel-bg);
+      border: var(--panel-border);
+      border-radius: var(--border-radius-lg);
+      padding: 1.25rem;
+      box-shadow: var(--card-shadow);
+      transition: transform var(--transition-fast);
+    }
+    .theme-aurora .card:hover {
+      transform: translateY(-2px);
+    }
+    .theme-aurora .chip {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: var(--text-muted);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.7rem;
+    }
+    .theme-aurora .chip.active {
+      background: #38bdf8;
+      border-color: #38bdf8;
+      color: #0d1117;
+      font-weight: 600;
+    }
+    .theme-aurora .input-field {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: var(--border-radius-md);
+      color: #fff;
+      padding: 0.65rem 0.9rem;
+    }
+    .theme-aurora .input-field:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .theme-aurora .chat-bubble.ai {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+    }
+    .theme-aurora .chat-bubble.user {
+      background: var(--accent-gradient);
+      color: #0d1117;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    /* THEME 4: Strict Zinc (Linear / Minimalist Tech) */
+    .theme-zinc {
+      --bg-gradient: none;
+      --panel-bg: #09090b;
+      --panel-border: 1px solid #222326;
+      --panel-blur: none;
+      --accent: #ff7c3b;
+      --accent-hover: #ff9055;
+      --accent-gradient: none;
+      --text-main: #f4f4f5;
+      --text-muted: #71717a;
+      --font-family: 'Inter', sans-serif;
+      --border-radius-lg: 14px;
+      --border-radius-md: 6px;
+      --card-shadow: none;
+      
+      background: #09090b;
+      font-family: var(--font-family);
+    }
+    .theme-zinc .app-header {
+      background: #09090b;
+      border-bottom: 1px solid #222326;
+      padding: 0.75rem 1rem;
+    }
+    .theme-zinc .app-nav {
+      background: #09090b;
+      border-top: 1px solid #222326;
+    }
+    .theme-zinc .card {
+      background: #111214;
+      border: 1px solid #222326;
+      border-left: 3px solid #ff7c3b;
+      border-radius: var(--border-radius-lg);
+      padding: 1rem 1.25rem;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+      box-shadow: none;
+    }
+    .theme-zinc .card:hover {
+      background: #16171a;
+      border-color: #2e3035;
+    }
+    .theme-zinc .chip {
+      background: #09090b;
+      border: 1px solid #222326;
+      color: var(--text-muted);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+    }
+    .theme-zinc .chip.active {
+      background: #ff7c3b;
+      border-color: #ff7c3b;
+      color: #09090b;
+      font-weight: 600;
+    }
+    .theme-zinc .input-field {
+      background: #111214;
+      border: 1px solid #222326;
+      border-radius: var(--border-radius-md);
+      color: #fff;
+      padding: 0.6rem 0.8rem;
+    }
+    .theme-zinc .input-field:focus {
+      outline: none;
+      border-color: #44464c;
+    }
+    .theme-zinc .chat-bubble.ai {
+      background: #111214;
+      border: 1px solid #222326;
+      border-left: 3px solid #ff7c3b;
+      border-radius: var(--border-radius-lg);
+      padding: 1rem 1.25rem;
+    }
+    .theme-zinc .chat-bubble.user {
+      background: #1e1f22;
+      border: 1px solid #2d2e33;
+      border-radius: 12px;
+      color: #fff;
+    }
+    .theme-zinc .instruction-badge {
+      display: none; /* Hide generic header badge */
+    }
+    .theme-zinc .btn-primary {
+      background: #ff7c3b;
+      color: #09090b;
+      border-radius: 6px;
+    }
+    .theme-zinc .btn-secondary {
+      background: transparent;
+      border: 1px solid #222326;
+      color: #a1a1aa;
+      border-radius: 6px;
+    }
+    .theme-zinc .conflict-card {
+      background: rgba(239, 68, 68, 0.03) !important;
+      border: 1px solid rgba(239, 68, 68, 0.15) !important;
+      border-radius: 8px;
+    }
+    .theme-zinc .version-box {
+      background: #09090b;
+      border: 1px solid #222326;
+    }
+    .theme-zinc .ai-sources {
+      border: none;
+      margin-top: 0.75rem;
+      padding-top: 0;
+    }
+    .theme-zinc .source-link, .theme-zinc .instruction-footer {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 124, 59, 0.08);
+      border: 1px solid rgba(255, 124, 59, 0.2);
+      color: #ff7c3b;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      gap: 6px;
+      text-decoration: none;
+      width: fit-content;
+      border-top: none;
+      margin-top: 0.75rem;
+    }
+    .theme-zinc .instruction-footer .source {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #ff7c3b;
+    }
+    .theme-zinc .instruction-footer span {
+      color: #ff7c3b;
+      opacity: 0.8;
+    }
+
+    /* THEME 5: Editorial Light */
+    .theme-editorial {
+      --bg-gradient: none;
+      --panel-bg: #fbfaf7;
+      --panel-border: 1px solid #ded8cf;
+      --panel-blur: none;
+      --accent: #2454d3;
+      --accent-hover: #1d47b6;
+      --accent-gradient: none;
+      --text-main: #161616;
+      --text-muted: #6f6a62;
+      --font-family: 'Inter', sans-serif;
+      --border-radius-lg: 18px;
+      --border-radius-md: 10px;
+      --card-shadow: none;
+      
+      background: #f3efe8;
+      font-family: var(--font-family);
+    }
+    .theme-editorial .status-bar {
+      color: rgba(22, 22, 22, 0.55);
+    }
+    .theme-editorial .app-header {
+      background: #f7f3ed;
+      border-bottom: 1px solid #d9d2c7;
+      padding: 0.9rem 1.25rem;
+    }
+    .theme-editorial .app-nav {
+      background: #f7f3ed;
+      border-top: 1px solid #d9d2c7;
+    }
+    .theme-editorial .card {
+      background: #fbfaf7;
+      border: 1px solid #ded8cf;
+      border-radius: 16px;
+      padding: 1.1rem 1.15rem;
+      box-shadow: none;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+    .theme-editorial .chip {
+      background: #f1ece4;
+      border: 1px solid #dfd6c8;
+      color: #6f6a62;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      padding: 0.35rem 0.75rem;
+    }
+    .theme-editorial .chip.active {
+      background: #1f2937;
+      border-color: #1f2937;
+      color: #ffffff;
+    }
+    .theme-editorial .input-field {
+      background: #fffdfa;
+      border: 1px solid #d8d1c5;
+      border-radius: 10px;
+      color: #161616;
+      padding: 0.75rem 0.95rem;
+    }
+    .theme-editorial .input-field:focus {
+      outline: none;
+      border-color: #2454d3;
+      box-shadow: 0 0 0 3px rgba(36, 84, 211, 0.08);
+    }
+    .theme-editorial .chat-bubble.ai {
+      background: #fbfaf7;
+      border: 1px solid #e0d9cf;
+      border-radius: 16px;
+      color: #161616;
+    }
+    .theme-editorial .chat-bubble.user {
+      background: #26231f;
+      border-radius: 16px;
+      color: #f8f7f4;
+    }
+    .theme-editorial .chat-input-wrapper {
+      background: linear-gradient(transparent, rgba(243, 239, 232, 0.96) 22%);
+    }
+    .theme-editorial .instruction-badge {
+      border: 1px solid #c9d3f1;
+      background: #edf2ff;
+      color: #2454d3;
+    }
+    .theme-editorial .user-badge {
+      background: rgba(22, 22, 22, 0.04);
+      border: 1px solid rgba(22, 22, 22, 0.08);
+      color: #6f6a62;
+    }
+    .theme-editorial .source-link {
+      color: #2454d3;
+    }
+    .theme-editorial .instruction-footer,
+    .theme-editorial .ai-sources {
+      border-color: rgba(22, 22, 22, 0.08);
+      color: #6f6a62;
+    }
+    .theme-editorial .conflict-card {
+      background: #fff4f2 !important;
+      border: 1px solid rgba(185, 62, 62, 0.22) !important;
+    }
+    .theme-editorial .version-box {
+      background: #fffdfa;
+      border: 1px solid #e1d9ce;
+    }
+    .theme-editorial .dropzone {
+      background: #faf6ef;
+      border-color: #d9d2c7;
+    }
+    .theme-editorial .dropzone:hover {
+      border-color: #2454d3;
+      background: #f3efe8;
+    }
+    .theme-editorial .btn-primary {
+      background: #1f2937;
+      color: #ffffff;
+      border-radius: 10px;
+    }
+    .theme-editorial .btn-send {
+      background: #2454d3;
+      color: #ffffff;
+      border-radius: 10px;
+    }
+    .theme-editorial .btn-secondary {
+      background: #fffdfa;
+      border: 1px solid #d8d1c5;
+      color: #161616;
+      border-radius: 10px;
+    }
+
+    /* THEME 6: Ops Console Dark */
+    .theme-ops {
+      --bg-gradient: none;
+      --panel-bg: #14181c;
+      --panel-border: 1px solid #262d34;
+      --panel-blur: none;
+      --accent: #8aa4ff;
+      --accent-hover: #9bb2ff;
+      --accent-gradient: none;
+      --text-main: #eef2f6;
+      --text-muted: #8a95a3;
+      --font-family: 'Inter', sans-serif;
+      --border-radius-lg: 10px;
+      --border-radius-md: 8px;
+      --card-shadow: none;
+      
+      background: #0c0f12;
+      font-family: var(--font-family);
+    }
+    .theme-ops .app-header {
+      background: #101419;
+      border-bottom: 1px solid #252c34;
+      padding: 0.8rem 1rem;
+    }
+    .theme-ops .app-nav {
+      background: #101419;
+      border-top: 1px solid #252c34;
+    }
+    .theme-ops .card {
+      background: #14181c;
+      border: 1px solid #262d34;
+      border-radius: 10px;
+      padding: 1rem 1.05rem;
+      box-shadow: none;
+    }
+    .theme-ops .chip {
+      background: #11151a;
+      border: 1px solid #2a3139;
+      color: #8a95a3;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      padding: 0.35rem 0.7rem;
+    }
+    .theme-ops .chip.active {
+      background: #1b2430;
+      border-color: #38517a;
+      color: #dfe7ff;
+    }
+    .theme-ops .input-field {
+      background: #0f1317;
+      border: 1px solid #29313a;
+      border-radius: 8px;
+      color: #eef2f6;
+      padding: 0.7rem 0.85rem;
+    }
+    .theme-ops .input-field:focus {
+      outline: none;
+      border-color: #8aa4ff;
+      box-shadow: 0 0 0 3px rgba(138, 164, 255, 0.12);
+    }
+    .theme-ops .chat-bubble.ai {
+      background: #14181c;
+      border: 1px solid #27313a;
+      border-radius: 12px;
+    }
+    .theme-ops .chat-bubble.user {
+      background: #1a2430;
+      border: 1px solid #33404b;
+      border-radius: 12px;
+      color: #ecf2ff;
+    }
+    .theme-ops .instruction-badge {
+      border: 1px solid rgba(138, 164, 255, 0.3);
+      background: rgba(138, 164, 255, 0.08);
+      color: #a9bdff;
+    }
+    .theme-ops .user-badge {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #8a95a3;
+    }
+    .theme-ops .source-link {
+      color: #9cb3ff;
+    }
+    .theme-ops .instruction-footer,
+    .theme-ops .ai-sources {
+      border-color: rgba(255, 255, 255, 0.06);
+      color: #8a95a3;
+    }
+    .theme-ops .conflict-card {
+      background: rgba(127, 29, 29, 0.14) !important;
+      border: 1px solid rgba(248, 113, 113, 0.22) !important;
+      border-radius: 10px;
+    }
+    .theme-ops .version-box {
+      background: #101419;
+      border: 1px solid #29313a;
+      border-radius: 8px;
+    }
+    .theme-ops .dropzone {
+      background: #11151a;
+      border-color: #2b323a;
+    }
+    .theme-ops .dropzone:hover {
+      border-color: #8aa4ff;
+      background: #151b22;
+    }
+    .theme-ops .btn-primary {
+      background: #8aa4ff;
+      color: #0c0f12;
+      border-radius: 8px;
+    }
+    .theme-ops .btn-send {
+      background: #8aa4ff;
+      color: #0c0f12;
+      border-radius: 8px;
+    }
+    .theme-ops .btn-secondary {
+      background: #11151a;
+      border: 1px solid #29313a;
+      color: #eef2f6;
+      border-radius: 8px;
+    }
+
+    /* THEME 7: Quiet Mono */
+    .theme-quiet {
+      --bg-gradient: none;
+      --panel-bg: #161616;
+      --panel-border: 1px solid #2c2c2c;
+      --panel-blur: none;
+      --accent: #d9d4cb;
+      --accent-hover: #e6e1d8;
+      --accent-gradient: none;
+      --text-main: #f5f3ef;
+      --text-muted: #9c988f;
+      --font-family: 'JetBrains Mono', monospace;
+      --border-radius-lg: 14px;
+      --border-radius-md: 8px;
+      --card-shadow: none;
+      
+      background: #101010;
+      font-family: var(--font-family);
+    }
+    .theme-quiet .app-header {
+      background: #111111;
+      border-bottom: 1px solid #232323;
+      padding: 0.8rem 1rem;
+    }
+    .theme-quiet .app-nav {
+      background: #111111;
+      border-top: 1px solid #232323;
+    }
+    .theme-quiet .card {
+      background: #161616;
+      border: 1px solid #2c2c2c;
+      border-radius: 14px;
+      padding: 1rem 1.05rem;
+      box-shadow: none;
+    }
+    .theme-quiet .chip {
+      background: transparent;
+      border: 1px solid #333333;
+      color: #9c988f;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      padding: 0.35rem 0.68rem;
+    }
+    .theme-quiet .chip.active {
+      background: #d9d4cb;
+      border-color: #d9d4cb;
+      color: #101010;
+      font-weight: 600;
+    }
+    .theme-quiet .input-field {
+      background: #121212;
+      border: 1px solid #303030;
+      border-radius: 8px;
+      color: #f5f3ef;
+      padding: 0.7rem 0.85rem;
+    }
+    .theme-quiet .input-field:focus {
+      outline: none;
+      border-color: #d9d4cb;
+      box-shadow: 0 0 0 3px rgba(217, 212, 203, 0.08);
+    }
+    .theme-quiet .chat-bubble.ai {
+      background: #141414;
+      border: 1px solid #2f2f2f;
+      border-radius: 14px;
+    }
+    .theme-quiet .chat-bubble.user {
+      background: #232323;
+      border: 1px solid #3a3a3a;
+      border-radius: 14px;
+      color: #f5f3ef;
+    }
+    .theme-quiet .instruction-badge {
+      border: 1px solid rgba(217, 212, 203, 0.22);
+      background: rgba(217, 212, 203, 0.08);
+      color: #d9d4cb;
+    }
+    .theme-quiet .user-badge {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #9c988f;
+    }
+    .theme-quiet .source-link {
+      color: #d9d4cb;
+    }
+    .theme-quiet .instruction-footer,
+    .theme-quiet .ai-sources {
+      border-color: rgba(255, 255, 255, 0.06);
+      color: #9c988f;
+    }
+    .theme-quiet .conflict-card {
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1px dashed rgba(248, 113, 113, 0.26) !important;
+      border-radius: 12px;
+    }
+    .theme-quiet .version-box {
+      background: #101010;
+      border: 1px solid #2b2b2b;
+      border-radius: 8px;
+    }
+    .theme-quiet .dropzone {
+      background: #131313;
+      border-color: #2f2f2f;
+    }
+    .theme-quiet .dropzone:hover {
+      border-color: #d9d4cb;
+      background: #171717;
+    }
+    .theme-quiet .btn-primary {
+      background: #d9d4cb;
+      color: #101010;
+      border-radius: 8px;
+    }
+    .theme-quiet .btn-send {
+      background: #d9d4cb;
+      color: #101010;
+      border-radius: 8px;
+    }
+    .theme-quiet .btn-secondary {
+      background: transparent;
+      border: 1px solid #2f2f2f;
+      color: #d9d4cb;
+      border-radius: 8px;
+    }
+    /* Core Layout Styles inside App Context */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .app-header .title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-header .title svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    .app-header .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 4px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .app-main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      scrollbar-width: none; /* Hide scrollbar for clean look */
+    }
+    
+    .app-main::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Screen Views management */
+    .screen-view {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+      height: 100%;
+    }
+
+    .screen-view.active {
+      display: flex;
+    }
+
+    /* Screen 1: AI Chat Specifics */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 4rem; /* space for input */
+    }
+
+    .chat-bubble {
+      padding: 0.85rem 1rem;
+      max-width: 85%;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    .chat-bubble.ai {
+      align-self: flex-start;
+      color: var(--text-main);
+    }
+
+    .chat-bubble.user {
+      align-self: flex-end;
+    }
+
+    /* Sources container */
+    .ai-sources {
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .source-link svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    /* Conflict Alert Block */
+    .conflict-card {
+      background: rgba(239, 68, 68, 0.08) !important;
+      border: 1.5px dashed rgba(239, 68, 68, 0.4) !important;
+      border-radius: var(--border-radius-lg);
+      padding: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .conflict-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ef4444;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .conflict-header svg {
+      width: 16px;
+      height: 16px;
+      stroke: #ef4444;
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    .conflict-versions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .version-box {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+    }
+
+    .version-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+    
+    .version-date {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Chat Input Form */
+    .chat-input-wrapper {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(transparent, rgba(11, 15, 25, 0.95) 20%);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chat-input-wrapper input {
+      flex: 1;
+    }
+
+    .btn-send {
+      width: 42px;
+      height: 42px;
+      background: var(--accent-gradient, var(--accent));
+      border: none;
+      border-radius: var(--border-radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      transition: var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover {
+      opacity: 0.9;
+    }
+
+    .btn-send svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    /* Screen 2: Library Specifics */
+    .search-bar-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .tag-container {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+
+    .tag-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    .instructions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      overflow-y: auto;
+      flex: 1;
+      padding-bottom: 1rem;
+    }
+
+    .instruction-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+
+    .instruction-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      flex: 1;
+      margin-right: 8px;
+    }
+
+    .instruction-badge {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--accent);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(99, 102, 241, 0.05);
+    }
+    
+    .theme-cyber .instruction-badge {
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      background: transparent;
+      border-radius: 0;
+    }
+
+    .instruction-summary {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 0.75rem;
+    }
+
+    .instruction-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 0.5rem;
+    }
+
+    .instruction-footer .source {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .instruction-footer svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    /* Screen 3: Upload / Import Screen */
+    .upload-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+      flex: 1;
+      padding-bottom: 2rem;
+    }
+
+    .dropzone {
+      border: 2px dashed rgba(255, 255, 255, 0.1);
+      border-radius: var(--border-radius-lg);
+      padding: 2rem 1rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .dropzone:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.03);
+    }
+
+    .dropzone svg {
+      width: 32px;
+      height: 32px;
+      stroke: var(--text-muted);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .dropzone span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .dropzone .primary-text {
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    /* Upload Preview Panel */
+    .preview-section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.75rem;
+      border-radius: var(--border-radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: var(--transition-fast);
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient, var(--accent));
+      color: white;
+    }
+    
+    .theme-cyber .btn-primary {
+      background: var(--accent);
+      color: #000;
+      border-radius: 0;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .theme-cyber .btn-secondary {
+      background: transparent;
+      border: 1px solid #27272a;
+      color: var(--text-muted);
+      border-radius: 0;
+    }
+
+    /* App Navigation Bar (Bottom) */
+    .app-nav {
+      height: 64px;
+      display: flex;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      font-size: 0.65rem;
+      font-weight: 500;
+      border: none;
+      background: transparent;
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+    }
+
+    .nav-item svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.2;
+      transition: var(--transition-fast);
+    }
+
+    .nav-item.active svg {
+      stroke: var(--accent);
+    }
+
+    /* Preview Details form-like elements */
+    .preview-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Mockup controls to switch direction and views -->
+  <div class="mockup-controls">
+    <h1>ТМА Дизайн-Инкубатор</h1>
+    
+    <div class="control-group">
+      <span class="control-label">Визуальный стиль (Направление)</span>
+      <div class="btn-group theme-grid" id="theme-switcher">
+        <button onclick="setTheme('glass')" class="active" id="btn-theme-glass">iOS Glass</button>
+        <button onclick="setTheme('cyber')" id="btn-theme-cyber">Cyber Tech</button>
+        <button onclick="setTheme('aurora')" id="btn-theme-aurora">Nord Aurora</button>
+        <button onclick="setTheme('zinc')" id="btn-theme-zinc">Strict Zinc</button>
+        <button onclick="setTheme('editorial')" id="btn-theme-editorial">Editorial</button>
+        <button onclick="setTheme('ops')" id="btn-theme-ops">Ops Console</button>
+        <button onclick="setTheme('quiet')" id="btn-theme-quiet">Quiet Mono</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">Экран TMA</span>
+      <div class="btn-group" id="screen-switcher">
+        <button onclick="setScreen('chat')" class="active" id="btn-screen-chat">Чат с ИИ</button>
+        <button onclick="setScreen('library')" id="btn-screen-library">Библиотека</button>
+        <button onclick="setScreen('upload')" id="btn-screen-upload">Загрузить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Simulated Phone Device -->
+  <div class="device-container theme-glass" id="app-device">
+    
+    <!-- OS Status Bar -->
+    <div class="status-bar">
+      <span>12:45</span>
+      <div class="right-icons">
+        <!-- Signal Strength -->
+        <svg viewBox="0 0 24 24"><path d="M2 22h20V2z" opacity="0.3"/><path d="M17 5L2 20h15z"/></svg>
+        <!-- Wifi -->
+        <svg viewBox="0 0 24 24"><path d="M12 21l-12-12c4-4 10-6 12-6s8 2 12 6l-12 12z"/></svg>
+        <!-- Battery -->
+        <svg viewBox="0 0 24 24"><path d="M17 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3h2v-4h-2V7a2 2 0 0 0-2-2z"/></svg>
+      </div>
+    </div>
+
+    <!-- App Viewport -->
+    <div class="app-viewport">
+      
+      <!-- App Header -->
+      <div class="app-header">
+        <div class="title" id="app-header-title">
+          <svg viewBox="0 0 24 24" id="header-icon"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span id="header-text">Чат с ИИ</span>
+        </div>
+        <div class="user-badge">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/></svg>
+          @admin
+        </div>
+      </div>
+
+      <!-- App Main Content Area -->
+      <div class="app-main">
+
+        <!-- SCREEN 1: AI CHAT -->
+        <div class="screen-view active" id="view-chat">
+          <div class="chat-container">
+            
+            <div class="chat-bubble ai card">
+              Привет! Я твоя база знаний. Задавай вопросы по сохранённым рабочим инструкциям.
+            </div>
+
+            <div class="chat-bubble user">
+              Как настроить рабочий VPN на Clario?
+            </div>
+
+            <!-- AI Response containing a Conflict Alert + normal text -->
+            <div class="chat-bubble ai card">
+              
+              <!-- Conflict Warning block rendered by TMA if retrieval returns conflict -->
+              <div class="conflict-card">
+                <div class="conflict-header">
+                  <svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Обнаружено противоречие в базе
+                </div>
+                <div class="conflict-versions">
+                  <div class="version-box">
+                    <div class="version-title">Гайд VPN (Новый)</div>
+                    <div>Сервер: <b>clario-ams-02</b>. Авторизация через SAML 2.0.</div>
+                    <div class="version-date">12 июля 2026</div>
+                  </div>
+                  <div class="version-box">
+                    <div class="version-title">Старый конфиг VPN</div>
+                    <div>Сервер: <b>clario-old-vpn</b>. Требует старый логин/пасс.</div>
+                    <div class="version-date">10 янв 2025</div>
+                  </div>
+                </div>
+              </div>
+
+              Для настройки актуального VPN на Clario используйте новые SAML-серверы:
+              <br><br>
+              1. Скачайте OpenVPN клиент.<br>
+              2. Импортируйте профиль <code>clario-ams-02.ovpn</code>.<br>
+              3. При первом входе используйте SAML-аутентификацию вашей корпоративной почты.
+              
+              <div class="ai-sources">
+                <a href="#" class="source-link" onclick="setScreen('library')">
+                  <svg viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+                  Инструкция: Гайд VPN Clario (2026)
+                </a>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Sticky Chat input -->
+          <div class="chat-input-wrapper">
+            <input type="text" class="input-field" placeholder="Спросить ИИ-помощника...">
+            <button class="btn-send">
+              <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 2: LIBRARY -->
+        <div class="screen-view" id="view-library">
+          <div class="search-bar-wrapper">
+            <input type="text" class="input-field" placeholder="Поиск по названию или тексту...">
+            
+            <div class="tag-container">
+              <span class="chip active">Все</span>
+              <span class="chip">vpn</span>
+              <span class="chip">tma</span>
+              <span class="chip">cs2</span>
+              <span class="chip">clario</span>
+              <span class="chip">general</span>
+            </div>
+          </div>
+
+          <div class="instructions-list">
+            
+            <!-- Instruction 1 -->
+            <div class="card">
+              <div class="instruction-card-header">
+                <div class="instruction-title">VPN Clario: Инструкция по SAML-доступу</div>
+                <span class="instruction-badge">vpn</span>
+              </div>
+              <div class="instruction-summary">
+                Подключение к корпоративной сети Clario через обновленный SAML шлюз и OpenVPN клиент.
+              </div>
+              <div class="instruction-footer">
+                <div class="source">
+                  <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  bot_text
+                </div>
+                <span>12.07.2026, 14:32</span>
+              </div>
+            </div>
+
+            <!-- Instruction 2 -->
+            <div class="card">
+              <div class="instruction-card-header">
+                <div class="instruction-title">Настройки сабвуфера в CS2 (config)</div>
+                <span class="instruction-badge">cs2</span>
+              </div>
+              <div class="instruction-summary">
+                Специфические консольные команды звукового движка Source 2 для улучшения позиционирования шагов.
+              </div>
+              <div class="instruction-footer">
+                <div class="source">
+                  <svg viewBox="0 0 24 24"><path d="M21 12h-2.9a3 3 0 0 0-5.8 0H3"/></svg>
+                  tma_text
+                </div>
+                <span>18.06.2026, 21:05</span>
+              </div>
+            </div>
+
+            <!-- Instruction 3 -->
+            <div class="card">
+              <div class="instruction-card-header">
+                <div class="instruction-title">Создание Telegram WebApp (React SDK)</div>
+                <span class="instruction-badge">tma</span>
+              </div>
+              <div class="instruction-summary">
+                Быстрый темплейт для интеграции telegram-web-app.js с хуками React и получением цветов темы.
+              </div>
+              <div class="instruction-footer">
+                <div class="source">
+                  <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  bot_photo
+                </div>
+                <span>05.05.2026, 11:20</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SCREEN 3: UPLOAD / IMPORT -->
+        <div class="screen-view" id="view-upload">
+          <div class="upload-scroll">
+            
+            <!-- Stage 1: Add new content -->
+            <div class="dropzone" id="upload-dropzone">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div>
+                <span class="primary-text">Перетащи скриншот или кликни</span><br>
+                <span>для анализа AI Vision</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="manual-text">Или введи текст вручную</label>
+              <textarea id="manual-text" rows="4" class="input-field" placeholder="Вставь лог, кусок кода или текст инструкции..."></textarea>
+            </div>
+
+            <!-- Stage 2: Preview Panel (Simulating Vision API response back to user) -->
+            <div class="preview-section-title">Предпросмотр перед сохранением</div>
+            <div class="card preview-form">
+              <div class="form-group">
+                <label>Название (Сгенерировано AI)</label>
+                <input type="text" class="input-field" value="Конфигурация Proxy-серверов в Clario">
+              </div>
+              
+              <div class="form-group">
+                <label>Тег</label>
+                <select class="input-field">
+                  <option>vpn</option>
+                  <option selected>clario</option>
+                  <option>tma</option>
+                  <option>cs2</option>
+                  <option>general</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Краткое описание (Summary)</label>
+                <textarea rows="2" class="input-field">Настройка адресов обхода прокси во внутренней подсети 10.150.x.x</textarea>
+              </div>
+
+              <div class="form-group">
+                <label>Полный текст</label>
+                <textarea rows="4" class="input-field">При работе через локальный шлюз необходимо прописать в исключения no_proxy: *.clario.local, 10.150.0.0/16, иначе перестанут резолвиться внутренние DNS-имена.</textarea>
+              </div>
+
+              <div class="preview-actions">
+                <button class="btn btn-secondary">Сброс</button>
+                <button class="btn btn-primary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Сохранить
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- App Bottom Tab Bar Navigation -->
+      <div class="app-nav">
+        <button class="nav-item active" id="nav-chat" onclick="setScreen('chat')">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Чат с ИИ
+        </button>
+        <button class="nav-item" id="nav-library" onclick="setScreen('library')">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+          Библиотека
+        </button>
+        <button class="nav-item" id="nav-upload" onclick="setScreen('upload')">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Загрузить
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Navigation handling
+    function setScreen(screenName) {
+      // Hide all screens
+      document.querySelectorAll('.screen-view').forEach(view => {
+        view.classList.remove('active');
+      });
+      // Deactivate all nav items
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+
+      // Show requested screen
+      const activeScreen = document.getElementById('view-' + screenName);
+      if (activeScreen) activeScreen.classList.add('active');
+
+      // Activate requested nav item
+      const activeNav = document.getElementById('nav-' + screenName);
+      if (activeNav) activeNav.classList.add('active');
+
+      // Update header content
+      const headerText = document.getElementById('header-text');
+      const headerIcon = document.getElementById('header-icon');
+      
+      let title = "Чат с ИИ";
+      let iconSvg = `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`;
+
+      if (screenName === 'library') {
+        title = "Библиотека";
+        iconSvg = `<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/>`;
+      } else if (screenName === 'upload') {
+        title = "Загрузить";
+        iconSvg = `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>`;
+      }
+
+      if (headerText) headerText.innerText = title;
+      if (headerIcon) headerIcon.innerHTML = iconSvg;
+    }
+
+    // Theme switching
+    function setTheme(themeName) {
+      const device = document.getElementById('app-device');
+      
+      // Remove previous themes
+      device.classList.remove('theme-glass', 'theme-cyber', 'theme-aurora', 'theme-zinc', 'theme-editorial', 'theme-ops', 'theme-quiet');
+      
+      // Add selected theme
+      device.classList.add('theme-' + themeName);
+
+      // Deactivate all switcher buttons
+      document.querySelectorAll('#theme-switcher button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // Activate active switcher button
+      document.getElementById('btn-theme-' + themeName).classList.add('active');
+    }
+  </script>
+</body>
+</html>
