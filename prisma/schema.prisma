@@ -19,7 +19,7 @@ model Instruction {
   tag         String   // vpn | tma | cs2 | clario | general
   sourceType  String   // bot_text | bot_photo | tma_text | tma_photo
   photoUrl    String?
-  embedding   Unsupported("vector(1536)")
+  embedding   Unsupported("vector(1536)")?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -21,22 +21,47 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    // Generate embedding for query
-    const embeddingResponse = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: query,
-    });
-    const embedding = embeddingResponse.data[0].embedding;
-    const embeddingStr = `[${embedding.join(',')}]`;
+    let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
+    
+    let results;
 
-    // Semantic search
-    const results = await prisma.$queryRaw`
-      SELECT id, title, summary, tag, "createdAt", 
-      1 - (embedding <=> ${embeddingStr}::vector) as similarity
-      FROM instructions
-      ORDER BY embedding <=> ${embeddingStr}::vector ASC
-      LIMIT 10
-    `;
+    if (hasEmbeddingsKey) {
+      try {
+        // Generate embedding for query
+        const embeddingResponse = await openai.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: query,
+        });
+        const embedding = embeddingResponse.data[0].embedding;
+        const embeddingStr = `[${embedding.join(',')}]`;
+
+        // Semantic search
+        const rawResults = await prisma.$queryRaw`
+          SELECT id, title, summary, tag, "createdAt", 
+          1 - (embedding <=> ${embeddingStr}::vector) as similarity
+          FROM instructions
+          ORDER BY embedding <=> ${embeddingStr}::vector ASC
+          LIMIT 10
+        `;
+        results = rawResults;
+      } catch (e) {
+        console.error("Embedding search failed, falling back to text search", e);
+        hasEmbeddingsKey = false;
+      }
+    }
+
+    if (!hasEmbeddingsKey) {
+      // Basic text search fallback
+      const ILIKE = `%${query}%`;
+      const rawResults = await prisma.$queryRaw`
+        SELECT id, title, summary, tag, "createdAt"
+        FROM instructions
+        WHERE title ILIKE ${ILIKE} OR summary ILIKE ${ILIKE} OR "fullText" ILIKE ${ILIKE}
+        LIMIT 10
+      `;
+      // Map to add fake similarity to match frontend expectations
+      results = (rawResults as any[]).map(r => ({ ...r, similarity: 0.5 }));
+    }
 
     return NextResponse.json({ success: true, data: results });
 

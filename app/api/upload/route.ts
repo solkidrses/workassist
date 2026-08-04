@@ -77,61 +77,72 @@ export async function POST(req: Request) {
       });
     }
 
-    if (text) {
-      claudeInput.push({
-        type: "text",
-        text: `Additional text from user:\n\n${text}`
-      });
-    } else {
-      claudeInput.push({
-        type: "text",
-        text: "Please transcribe the provided image and structure the instruction."
-      });
-    }
+    let parsed = { title: "Untitled", summary: "", tag: "general", fullText: text || "Image uploaded" };
 
-    // Step 1: Structure text via Claude
-    const msg = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20240620",
-      max_tokens: 1024,
-      system: `You are an AI that extracts and structures work instructions from text or images into a clean JSON format. 
+    if (text) {
+      // Use DeepSeek for structuring text
+      const deepseek = new OpenAI({
+        apiKey: process.env.DEEPSEEK_API_KEY || 'dummy',
+        baseURL: 'https://api.deepseek.com/v1',
+      });
+      
+      try {
+        const msg = await deepseek.chat.completions.create({
+          model: "deepseek-chat",
+          messages: [
+            {
+              role: "system",
+              content: `You are an AI that extracts and structures work instructions from text into a clean JSON format. 
 Extract or generate the following fields:
 - title: A short descriptive title
 - summary: A 1-2 sentence summary
 - tag: EXACTLY ONE of [vpn, tma, cs2, clario, general]
 - fullText: The full formatted instruction in Markdown
 
-Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`json around the output.`,
-      messages: [
-        { role: "user", content: claudeInput }
-      ],
-    });
-
-    // @ts-ignore
-    const responseText = msg.content[0]?.text || "{}";
-    
-    // Parse JSON from Claude response
-    let parsed;
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
-    } catch (e) {
-      console.error("Failed to parse Claude JSON", responseText);
-      return NextResponse.json({ error: 'Failed to structure text' }, { status: 500 });
+Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`json around the output.`
+            },
+            { role: "user", content: text }
+          ],
+          response_format: { type: "json_object" }
+        });
+        
+        const responseText = msg.choices[0]?.message?.content || "{}";
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+      } catch (e) {
+        console.error("Failed to parse DeepSeek JSON", e);
+        // Fallback to raw text if DeepSeek fails
+        parsed.fullText = text;
+      }
     }
 
     const { title, summary, tag, fullText } = parsed;
 
-    // Step 2: Generate Embeddings
-    const embeddingInput = `${summary}\n\n${fullText}`;
-    const embeddingResponse = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: embeddingInput,
-    });
-    const embedding = embeddingResponse.data[0].embedding;
-    const embeddingStr = `[${embedding.join(',')}]`;
+    // Step 2: Generate Embeddings (Fallback to zero-vector if dummy)
+    let embeddingStr = '';
+    let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
+    
+    if (hasEmbeddingsKey) {
+      try {
+        const embeddingInput = `${summary}\n\n${fullText}`;
+        const embeddingResponse = await openai.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: embeddingInput,
+        });
+        const embedding = embeddingResponse.data[0].embedding;
+        embeddingStr = `[${embedding.join(',')}]`;
+      } catch (e) {
+        console.error("Embedding error:", e);
+        hasEmbeddingsKey = false;
+      }
+    }
+    
+    if (!hasEmbeddingsKey) {
+      embeddingStr = '[' + new Array(1536).fill(0).join(',') + ']';
+    }
 
     // Step 3: Duplicate / Conflict check using pgvector
-    if (!forceSave) {
+    if (!forceSave && hasEmbeddingsKey) {
       const similar = await prisma.$queryRaw`
         SELECT id, title, summary, tag, "createdAt", 
         (embedding <=> ${embeddingStr}::vector) as distance
