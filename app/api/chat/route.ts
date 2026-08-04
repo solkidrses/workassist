@@ -1,5 +1,5 @@
 import { streamText } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { deepseek } from '@ai-sdk/deepseek';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { verifyTelegramInitData } from '@/lib/telegramAuth';
@@ -65,7 +65,7 @@ ${contextStr}
 `;
 
     const result = await streamText({
-      model: anthropic('claude-3-5-sonnet-20240620'),
+      model: deepseek('deepseek-chat'),
       system: systemPrompt,
       messages,
     });
