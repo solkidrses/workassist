@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, UploadCloud, X, Check, FileText, Image as ImageIcon } from 'lucide-react';
 
 export default function UploadPage() {
@@ -146,11 +147,9 @@ export default function UploadPage() {
             <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '0 0 24px' }}>
               ИИ структурировал инструкцию: <br/><strong style={{ color: '#fff' }}>{result.title}</strong>
             </p>
-            <Link href="/">
-              <button className="btn-primary" style={{ backgroundColor: '#27272a', color: '#fff' }}>
+            <button className="btn-primary" style={{ backgroundColor: '#27272a', color: '#fff' }} onClick={() => window.location.href = '/'}>
                 Вернуться в базу
               </button>
-            </Link>
           </div>
         ) : conflict ? (
           <div className="zinc-card" style={{ borderLeftColor: '#ff4757' }}>

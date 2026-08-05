@@ -12,10 +12,20 @@ export const maxDuration = 60; // Allow 60s for streaming
 export async function POST(req: Request) {
   try {
     const initData = req.headers.get('x-telegram-init-data');
-    if (!initData || !verifyTelegramInitData(initData, process.env.BOT_TOKEN!)) {
-      if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    const botTokenHeader = req.headers.get('x-bot-token');
+    
+    let isAuthorized = false;
+    
+    if (botTokenHeader === process.env.BOT_TOKEN) {
+      isAuthorized = true;
+    } else if (initData && verifyTelegramInitData(initData, process.env.BOT_TOKEN!)) {
+      isAuthorized = true;
+    } else if (process.env.NODE_ENV !== 'production') {
+      isAuthorized = true;
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { messages } = await req.json();

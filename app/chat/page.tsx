@@ -51,6 +51,11 @@ export default function ChatPage() {
         body: JSON.stringify({ messages: updatedMessages }),
       });
 
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
       if (!response.body) throw new Error('No response body');
 
       const reader = response.body.getReader();
@@ -81,8 +86,11 @@ export default function ChatPage() {
 
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: assistantContent } : m));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      // Show error message in chat
+      const errorId = (Date.now() + 2).toString();
+      setMessages(prev => [...prev.filter(m => m.content !== ''), { id: errorId, role: 'assistant', content: `⚠️ Ошибка: ${e.message || 'Не удалось получить ответ'}` }]);
     }
     setIsLoading(false);
   };
