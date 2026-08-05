@@ -25,24 +25,49 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
     }
 
-    // Embed user query
-    const embeddingResponse = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: lastMessage.content,
-    });
-    const embedding = embeddingResponse.data[0].embedding;
-    const embeddingStr = `[${embedding.join(',')}]`;
+    let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
+    let results: any[] = [];
 
-    // Semantic search for RAG context
-    const similar = await prisma.$queryRaw`
-      SELECT id, title, summary, "fullText", tag, "createdAt", 
-      (embedding <=> ${embeddingStr}::vector) as distance
-      FROM instructions
-      ORDER BY distance ASC
-      LIMIT 5
-    `;
+    if (hasEmbeddingsKey) {
+      try {
+        // Embed user query
+        const embeddingResponse = await openai.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: lastMessage.content,
+        });
+        const embedding = embeddingResponse.data[0].embedding;
+        const embeddingStr = `[${embedding.join(',')}]`;
 
-    const results = similar as any[];
+        // Semantic search for RAG context
+        const similar = await prisma.$queryRaw`
+          SELECT id, title, summary, "fullText", tag, "createdAt", 
+          (embedding <=> ${embeddingStr}::vector) as distance
+          FROM instructions
+          ORDER BY distance ASC
+          LIMIT 5
+        `;
+        results = similar as any[];
+      } catch (e) {
+        console.error("Embedding search failed in chat, falling back to text search", e);
+        hasEmbeddingsKey = false;
+      }
+    }
+
+    if (!hasEmbeddingsKey) {
+      // Basic text search fallback using the user's message as query
+      // Split message by space to get keywords, and search using ILIKE
+      const query = lastMessage.content.trim();
+      if (query.length > 2) {
+        const ILIKE = `%${query}%`;
+        const rawResults = await prisma.$queryRaw`
+          SELECT id, title, summary, "fullText", tag, "createdAt"
+          FROM instructions
+          WHERE title ILIKE ${ILIKE} OR summary ILIKE ${ILIKE} OR "fullText" ILIKE ${ILIKE}
+          LIMIT 5
+        `;
+        results = rawResults as any[];
+      }
+    }
     let contextStr = '';
     
     if (results.length > 0) {
