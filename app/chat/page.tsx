@@ -69,22 +69,11 @@ export default function ChatPage() {
       while (!done) {
         const { value, done: doneReading } = await reader.read();
         done = doneReading;
-        const chunkValue = decoder.decode(value, { stream: true });
-        
-        // Very basic parsing for toTextStreamResponse format which often sends chunks like `0:"text"`
-        const lines = chunkValue.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('0:')) {
-            try {
-              const text = JSON.parse(line.slice(2));
-              assistantContent += text;
-            } catch (e) {
-              // fallback
-            }
-          }
+        if (value) {
+          const chunkValue = decoder.decode(value, { stream: true });
+          assistantContent += chunkValue;
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: assistantContent } : m));
         }
-
-        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: assistantContent } : m));
       }
     } catch (e: any) {
       console.error(e);
