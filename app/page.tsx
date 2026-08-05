@@ -29,14 +29,22 @@ export default function LibraryPage() {
     }
   }, []);
 
+  const [selectedTag, setSelectedTag] = useState('all');
+
+  const TAGS = ['all', 'vpn', 'tma', 'cs2', 'clario', 'general'];
+
   useEffect(() => {
     fetchInstructions();
-  }, [initDataRaw]);
+  }, [initDataRaw, selectedTag]);
 
   const fetchInstructions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/instructions', {
+      const url = selectedTag === 'all' 
+        ? '/api/instructions' 
+        : `/api/instructions?tag=${encodeURIComponent(selectedTag)}`;
+
+      const res = await fetch(url, {
         headers: { 'x-telegram-init-data': initDataRaw }
       });
       const data = await res.json();
@@ -78,7 +86,7 @@ export default function LibraryPage() {
       </div>
 
       <div style={{ padding: 16 }}>
-        <form onSubmit={handleSearch} style={{ position: 'relative', marginBottom: 20 }}>
+        <form onSubmit={handleSearch} style={{ position: 'relative', marginBottom: 12 }}>
           <input 
             type="text" 
             className="input-field" 
@@ -99,6 +107,34 @@ export default function LibraryPage() {
           )}
         </form>
 
+        {/* Tag Filters */}
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 20, paddingBottom: 4, scrollbarWidth: 'none' }}>
+          {TAGS.map(tag => {
+            const isActive = selectedTag === tag;
+            return (
+              <button
+                key={tag}
+                onClick={() => { setSelectedTag(tag); setQuery(''); setIsSearching(false); }}
+                style={{
+                  backgroundColor: isActive ? 'var(--accent)' : 'var(--bg-user-message)',
+                  color: isActive ? '#000' : 'var(--text-muted)',
+                  border: isActive ? 'none' : '1px solid #27272a',
+                  borderRadius: 20,
+                  padding: '6px 14px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {tag === 'all' ? 'Все' : tag}
+              </button>
+            );
+          })}
+        </div>
+
         {loading ? (
           <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>Загрузка...</div>
         ) : instructions.length === 0 ? (
@@ -108,20 +144,26 @@ export default function LibraryPage() {
         ) : (
           <div>
             {instructions.map(inst => (
-              <div key={inst.id} className="zinc-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{inst.title}</h3>
-                  <span className="zinc-tag">{inst.tag}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  {inst.summary}
-                </p>
-                {inst.similarity !== undefined && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--accent)' }}>
-                    Совпадение: {(inst.similarity * 100).toFixed(0)}%
+              <Link 
+                key={inst.id} 
+                href={`/instruction/${inst.id}`} 
+                style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+              >
+                <div className="zinc-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{inst.title}</h3>
+                    <span className="zinc-tag">{inst.tag}</span>
                   </div>
-                )}
-              </div>
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    {inst.summary || 'Нажмите, чтобы прочитать полностью...'}
+                  </p>
+                  {inst.similarity !== undefined && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: 'var(--accent)' }}>
+                      Совпадение: {(inst.similarity * 100).toFixed(0)}%
+                    </div>
+                  )}
+                </div>
+              </Link>
             ))}
           </div>
         )}
