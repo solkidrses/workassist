@@ -99,22 +99,19 @@ export async function POST(req: Request) {
       contextStr = results.map(r => `[Title: ${r.title}, Tag: ${r.tag}]\n${r.fullText}`).join('\n\n---\n\n');
     }
 
-    const systemPrompt = `You are an AI assistant helping a user with their personal work instructions database.
-Your purpose is to answer the user's questions based ONLY on their uploaded workspace instructions.
+    const instructions = `You are an AI assistant helping a user with their personal work instructions database.
+Your purpose is to answer the user's questions based ONLY on the Context instructions provided in the user message.
 
 Guidelines:
 1. Always maintain a professional, technical, yet friendly tone.
 2. Use the provided Context instructions to construct your answers.
 3. If the retrieved context instructions contradict each other, call attention to this conflict immediately and detail both versions.
 4. Reference the instructions you used by their exact Titles.
-5. If no relevant instructions are found in the context, explicitly state: "В вашей базе инструкций нет информации по этому вопросу." Do not make up answers.
-6. Support formatting using Markdown.
+5. If no relevant instructions are found, explicitly state: "В вашей базе инструкций нет информации по этому вопросу." Do not make up answers.
+6. Support formatting using Markdown.`;
 
-Context instructions:
-${contextStr}
-`;
-
-    const input = lastMessage.content;
+    const contextSection = results.length > 0 ? `Context instructions:\n\n${contextStr}\n\n---\n\n` : '';
+    const input = `${contextSection}User question: ${lastMessage.content}`;
 
     const apiRes = await fetch(`${DEEPSEEK_BASE_URL}/responses`, {
       method: 'POST',
@@ -124,7 +121,7 @@ ${contextStr}
       },
       body: JSON.stringify({
         model: 'deepseek-v4-flash',
-        instructions: systemPrompt,
+        instructions,
         input,
         stream: true,
       }),
@@ -156,7 +153,6 @@ ${contextStr}
             const trimmed = line.trim();
             if (!trimmed.startsWith('data:')) continue;
             const data = trimmed.slice(5).trim();
-            console.log('SSE data:', data);
             if (data === '[DONE]') {
               controller.close();
               return;
