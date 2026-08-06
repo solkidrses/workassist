@@ -18,12 +18,6 @@ type RetrievedInstruction = {
   distance?: number;
 };
 
-type ResponseInputItem = {
-  type: 'message';
-  role: 'user' | 'assistant';
-  content: string;
-};
-
 type ResponseOutputTextDelta = {
   type: 'response.output_text.delta';
   delta: string;
@@ -120,9 +114,7 @@ Context instructions:
 ${contextStr}
 `;
 
-    const input: ResponseInputItem[] = messages
-      .filter((m): m is ChatMessage & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ type: 'message' as const, role: m.role, content: m.content }));
+    const input = lastMessage.content;
 
     const apiRes = await fetch(`${DEEPSEEK_BASE_URL}/responses`, {
       method: 'POST',
