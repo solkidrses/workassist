@@ -1,5 +1,3 @@
-import { streamText } from 'ai';
-import { deepseek } from '@ai-sdk/deepseek';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
@@ -20,7 +18,23 @@ type RetrievedInstruction = {
   distance?: number;
 };
 
+type ResponseInputItem = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+type ResponseOutputTextDelta = {
+  type: 'response.output_text.delta';
+  delta: string;
+};
+
+type ResponseStreamEvent =
+  | ResponseOutputTextDelta
+  | { type: string };
+
 const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 
 export const maxDuration = 60; // Allow 60s for streaming
 
@@ -35,6 +49,10 @@ export async function POST(req: Request) {
 
     if (!lastMessage || lastMessage.role !== 'user') {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
+    }
+
+    if (!DEEPSEEK_API_KEY) {
+      return NextResponse.json({ error: 'DEEPSEEK_API_KEY is not configured' }, { status: 500 });
     }
 
     let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
@@ -101,13 +119,74 @@ Context instructions:
 ${contextStr}
 `;
 
-    const result = await streamText({
-      model: deepseek('deepseek-chat'),
-      system: systemPrompt,
-      messages,
+    const input: ResponseInputItem[] = messages
+      .filter((m): m is ChatMessage & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    const apiRes = await fetch(`${DEEPSEEK_BASE_URL}/responses`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'deepseek-v4-flash',
+        instructions: systemPrompt,
+        input,
+        stream: true,
+      }),
     });
 
-    return result.toTextStreamResponse();
+    if (!apiRes.ok) {
+      const errorBody = await apiRes.text();
+      console.error('DeepSeek Responses API error:', errorBody);
+      return NextResponse.json({ error: 'DeepSeek API error' }, { status: 502 });
+    }
+
+    const reader = apiRes.body?.getReader();
+    if (!reader) {
+      return NextResponse.json({ error: 'No response stream' }, { status: 502 });
+    }
+
+    const encoder = new TextEncoder();
+    const textStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+            const data = trimmed.slice(5).trim();
+            if (data === '[DONE]') {
+              controller.close();
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data) as ResponseStreamEvent;
+              if (parsed.type === 'response.output_text.delta' && 'delta' in parsed) {
+                controller.enqueue(encoder.encode(parsed.delta));
+              }
+            } catch {
+              // Skip malformed or empty SSE lines
+            }
+          }
+        }
+        controller.close();
+      },
+    });
+
+    return new NextResponse(textStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      },
+    });
 
   } catch (error) {
     console.error('Chat Error:', error);
