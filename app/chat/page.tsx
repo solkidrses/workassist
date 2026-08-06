@@ -89,7 +89,7 @@ export default function ChatPage() {
   return (
     <div className="page-shell" style={{ paddingBottom: 130 }}>
       <div className="header">
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Чат ИИ</h1>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Чат</h1>
       </div>
 
       {!isTelegramReady && !authError && (
@@ -170,7 +170,7 @@ export default function ChatPage() {
         </Link>
         <Link href="/chat" className="bottom-nav-link active">
           <MessageSquare size={24} />
-          <span style={{ fontSize: 10, marginTop: 4, fontWeight: 500 }}>Чат ИИ</span>
+          <span style={{ fontSize: 10, marginTop: 4, fontWeight: 500 }}>Чат</span>
         </Link>
       </div>
     </div>

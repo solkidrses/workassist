@@ -101,7 +101,7 @@ export default function LibraryPage() {
   return (
     <div className="page-shell" style={{ paddingBottom: 80 }}>
       <div className="header">
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Библиотека</h1>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>База</h1>
       </div>
 
       {!isTelegramReady && !authError && (
