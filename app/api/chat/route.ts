@@ -33,6 +33,7 @@ export async function POST(req: Request) {
 
     const { messages } = await req.json() as { messages: ChatMessage[] };
     const lastMessage = messages[messages.length - 1];
+    console.error('DEBUG messages:', JSON.stringify(messages), 'last:', lastMessage);
 
     if (!lastMessage || lastMessage.role !== 'user') {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
