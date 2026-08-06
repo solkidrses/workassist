@@ -156,6 +156,7 @@ ${contextStr}
             const trimmed = line.trim();
             if (!trimmed.startsWith('data:')) continue;
             const data = trimmed.slice(5).trim();
+            console.log('SSE data:', data);
             if (data === '[DONE]') {
               controller.close();
               return;
