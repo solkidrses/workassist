@@ -73,16 +73,20 @@ export async function POST(req: Request) {
     if (!hasEmbeddingsKey) {
       // Basic text search fallback using the user's message as query
       // Split message by space to get keywords, and search using ILIKE
-      const query = lastMessage.content.trim();
-      if (query.length > 2) {
-        const ILIKE = `%${query}%`;
-        const rawResults = await prisma.$queryRaw<RetrievedInstruction[]>`
-          SELECT id, title, summary, "fullText", tag, "createdAt"
-          FROM instructions
-          WHERE title ILIKE ${ILIKE} OR summary ILIKE ${ILIKE} OR "fullText" ILIKE ${ILIKE}
-          LIMIT 5
-        `;
-        results = rawResults;
+      try {
+        const query = lastMessage.content.trim();
+        if (query.length > 2) {
+          const ILIKE = `%${query}%`;
+          const rawResults = await prisma.$queryRaw<RetrievedInstruction[]>`
+            SELECT id, title, summary, "fullText", tag, "createdAt"
+            FROM instructions
+            WHERE title ILIKE ${ILIKE} OR summary ILIKE ${ILIKE} OR "fullText" ILIKE ${ILIKE}
+            LIMIT 5
+          `;
+          results = rawResults;
+        }
+      } catch (e) {
+        console.error('Text search failed in chat, continuing without context', e);
       }
     }
     let contextStr = '';
@@ -117,14 +121,11 @@ Guidelines:
     const textStream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const encoder = new TextEncoder();
-        console.error('DEBUG stream start');
         for await (const event of stream) {
-          console.error('DEBUG event:', (event as { type: string }).type);
           if ((event as { type: string }).type === 'response.output_text.delta') {
             controller.enqueue(encoder.encode((event as { delta: string }).delta));
           }
         }
-        console.error('DEBUG stream end');
         controller.close();
       },
     });
