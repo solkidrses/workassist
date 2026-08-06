@@ -117,11 +117,14 @@ Guidelines:
     const textStream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const encoder = new TextEncoder();
+        console.error('DEBUG stream start');
         for await (const event of stream) {
-          if (event.type === 'response.output_text.delta') {
+          console.error('DEBUG event:', (event as { type: string }).type);
+          if ((event as { type: string }).type === 'response.output_text.delta') {
             controller.enqueue(encoder.encode((event as { delta: string }).delta));
           }
         }
+        console.error('DEBUG stream end');
         controller.close();
       },
     });
