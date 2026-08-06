@@ -149,7 +149,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       {/* Header */}
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/" style={{ color: 'var(--text-main)' }}><ArrowLeft size={24} /></Link>
+          <a href="/" style={{ color: 'var(--text-main)', display: 'flex', alignItems: 'center' }}><ArrowLeft size={24} /></a>
           <h1 style={{ margin: 0, fontSize: 18, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
             {isEditing ? 'Редактирование' : instruction.title}
           </h1>

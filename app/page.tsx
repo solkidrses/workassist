@@ -203,14 +203,14 @@ export default function LibraryPage() {
         paddingBottom: 'env(safe-area-inset-bottom)',
         zIndex: 10
       }}>
-        <Link href="/" style={{ color: 'var(--accent)', display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
+        <a href="/" style={{ color: 'var(--accent)', display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
           <Book size={24} />
           <span style={{ fontSize: 10, marginTop: 4, fontWeight: 500 }}>База</span>
-        </Link>
-        <Link href="/chat" style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
+        </a>
+        <a href="/chat" style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
           <MessageSquare size={24} />
           <span style={{ fontSize: 10, marginTop: 4 }}>Чат ИИ</span>
-        </Link>
+        </a>
       </div>
     </div>
   );
