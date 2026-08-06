@@ -33,6 +33,10 @@ bot.command("app", (ctx) => {
   ctx.reply("Нажми кнопку ниже, чтобы открыть Mini App:", { reply_markup: keyboard });
 });
 
+type UploadConflictMatch = {
+  title: string;
+};
+
 bot.on("message:text", async (ctx) => {
   const text = ctx.message.text;
   
@@ -56,11 +60,12 @@ bot.on("message:text", async (ctx) => {
     
     if (!res.ok) {
       if (data.conflict) {
+        const matches = data.matches as UploadConflictMatch[];
         // Return information about conflict
         await ctx.api.editMessageText(
           ctx.chat.id,
           waitMsg.message_id,
-          `⚠️ Найдены похожие инструкции:\n\n${data.matches.map((m: any) => `- ${m.title}`).join('\n')}\n\nОткрой Mini App для ручного сохранения.`
+          `⚠️ Найдены похожие инструкции:\n\n${matches.map((match) => `- ${match.title}`).join('\n')}\n\nОткрой Mini App для ручного сохранения.`
         );
         return;
       }

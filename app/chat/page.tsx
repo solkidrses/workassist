@@ -3,6 +3,15 @@
 import Link from 'next/link';
 import { Book, MessageSquare, Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTelegramInitData } from '@/lib/useTelegramInitData';
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Не удалось получить ответ';
+};
 
 type Message = {
   id: string;
@@ -11,18 +20,10 @@ type Message = {
 }
 
 export default function ChatPage() {
-  const [initDataRaw, setInitDataRaw] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-      const tg = (window as any).Telegram.WebApp;
-      tg.ready();
-      setInitDataRaw(tg.initData || '');
-    }
-  }, []);
+  const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +34,7 @@ export default function ChatPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+    if (!isTelegramReady) return;
 
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
@@ -46,7 +48,7 @@ export default function ChatPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-telegram-init-data': initDataRaw,
+          ...authHeaders,
         },
         body: JSON.stringify({ messages: updatedMessages }),
       });
@@ -75,25 +77,44 @@ export default function ChatPage() {
           setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: assistantContent } : m));
         }
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      // Show error message in chat
       const errorId = (Date.now() + 2).toString();
-      setMessages(prev => [...prev.filter(m => m.content !== ''), { id: errorId, role: 'assistant', content: `⚠️ Ошибка: ${e.message || 'Не удалось получить ответ'}` }]);
+      setMessages(prev => [...prev.filter(m => m.content !== ''), { id: errorId, role: 'assistant', content: `⚠️ Ошибка: ${getErrorMessage(e)}` }]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
-    <div style={{ paddingBottom: 130, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="page-shell" style={{ paddingBottom: 130 }}>
       <div className="header">
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Чат ИИ</h1>
       </div>
 
-      <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {!isTelegramReady && !authError && (
+        <div className="status-banner pending">
+          <div className="pulse-dot" />
+          <div>
+            <div className="status-banner-title">Подключаем Telegram</div>
+            <div className="status-banner-text">Жду подтверждённую Telegram-сессию, чтобы сообщения отправлялись без ошибок и перезагрузок.</div>
+          </div>
+        </div>
+      )}
+
+      {authError && (
+        <div className="status-banner error">
+          <div>
+            <div className="status-banner-title">Сессия не подтверждена</div>
+            <div className="status-banner-text">{authError}</div>
+          </div>
+        </div>
+      )}
+
+      <div className="message-stack">
         {messages.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>
-            Задайте вопрос по вашей базе инструкций.
+            {isTelegramReady ? 'Задайте вопрос по вашей базе инструкций.' : 'Подготавливаю защищённую сессию для чата.'}
           </div>
         )}
         
@@ -102,17 +123,13 @@ export default function ChatPage() {
             display: 'flex',
             justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start'
           }}>
-            <div className={m.role === 'user' ? 'zinc-user-message' : 'zinc-card'} style={{ 
-              maxWidth: '85%', 
-              margin: 0, 
+            <div className={`${m.role === 'user' ? 'zinc-user-message' : 'zinc-card'} message-bubble ${m.role === 'user' ? 'user' : 'assistant'}`} style={{ 
               borderLeft: m.role === 'user' ? 'none' : '3px solid var(--accent)',
-              borderBottomRightRadius: m.role === 'user' ? 4 : 'var(--border-radius)',
-              borderBottomLeftRadius: m.role === 'assistant' ? 4 : 'var(--border-radius)',
             }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+              <div className="message-meta">
                 {m.role === 'user' ? 'Вы' : 'ИИ-Ассистент'}
               </div>
-              <div style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+              <div className="message-text">
                 {m.content}
               </div>
             </div>
@@ -120,7 +137,8 @@ export default function ChatPage() {
         ))}
         {isLoading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <div className="zinc-card" style={{ padding: '12px 16px', borderBottomLeftRadius: 4 }}>
+            <div className="zinc-card message-bubble assistant" style={{ padding: '12px 16px' }}>
+              <div className="message-meta">ИИ-Ассистент</div>
               <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>печатает...</div>
             </div>
           </div>
@@ -128,53 +146,32 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div style={{
-        position: 'fixed',
-        bottom: 60,
-        left: 0,
-        right: 0,
-        padding: 16,
-        backgroundColor: 'var(--bg-main)',
-        borderTop: '1px solid #27272a',
-        zIndex: 10
-      }}>
+      <div className="panel-fixed composer-bar">
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
           <input 
             type="text" 
             className="input-field" 
             value={input} 
             onChange={(e) => setInput(e.target.value)} 
-            placeholder="Спросите что-нибудь..." 
+            placeholder={isTelegramReady ? 'Спросите что-нибудь...' : 'Подключаю Telegram...'} 
             style={{ flex: 1 }}
+            disabled={!isTelegramReady || !!authError}
           />
-          <button type="submit" className="btn-primary" style={{ width: 48, height: 48, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} disabled={isLoading || !input.trim()}>
+          <button type="submit" className="btn-primary" style={{ width: 48, height: 48, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} disabled={isLoading || !input.trim() || !isTelegramReady || !!authError}>
             <Send size={20} />
           </button>
         </form>
       </div>
 
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 60,
-        backgroundColor: 'var(--bg-main)',
-        borderTop: '1px solid #27272a',
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        zIndex: 10
-      }}>
-        <a href="/" style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
+      <div className="panel-fixed bottom-nav">
+        <Link href="/" className="bottom-nav-link">
           <Book size={24} />
           <span style={{ fontSize: 10, marginTop: 4 }}>База</span>
-        </a>
-        <a href="/chat" style={{ color: 'var(--accent)', display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
+        </Link>
+        <Link href="/chat" className="bottom-nav-link active">
           <MessageSquare size={24} />
           <span style={{ fontSize: 10, marginTop: 4, fontWeight: 500 }}>Чат ИИ</span>
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -1,27 +1,43 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, UploadCloud, X, Check, FileText, Image as ImageIcon } from 'lucide-react';
+import { useTelegramInitData } from '@/lib/useTelegramInitData';
+
+type UploadResult = {
+  id: string;
+  title: string;
+  tag: string;
+  summary: string;
+};
+
+type ConflictMatch = {
+  id: string;
+  title: string;
+  distance: number;
+};
+
+type ConflictState = {
+  structuredData: {
+    title: string;
+    summary: string;
+  };
+  matches: ConflictMatch[];
+};
 
 export default function UploadPage() {
-  const [initDataRaw, setInitDataRaw] = useState('');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-      const tg = (window as any).Telegram.WebApp;
-      tg.ready();
-      setInitDataRaw(tg.initData || '');
-    }
-  }, []);
+  const router = useRouter();
+  const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
 
   const [text, setText] = useState('');
   const [photoBase64, setPhotoBase64] = useState<string>('');
-  
+
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [conflict, setConflict] = useState<any>(null);
+  const [result, setResult] = useState<UploadResult | null>(null);
+  const [conflict, setConflict] = useState<ConflictState | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -36,11 +52,13 @@ export default function UploadPage() {
 
   const handleUpload = async (forceSave = false) => {
     if (!text && !photoBase64) return;
-    
+    if (!isTelegramReady) return;
+
     setLoading(true);
     setResult(null);
     setConflict(null);
-    
+    setRequestError(null);
+
     try {
       const payload = {
         text,
@@ -53,34 +71,33 @@ export default function UploadPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-telegram-init-data': initDataRaw,
+          ...authHeaders,
         },
         body: JSON.stringify(payload)
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         if (data.conflict) {
-          setConflict(data);
+          setConflict(data as ConflictState);
         } else {
-          alert(data.error || 'Ошибка при загрузке');
+          setRequestError(data.error || 'Ошибка при загрузке');
         }
       } else {
-        setResult(data.data[0]);
-        // Reset form
+        setResult(data.data[0] as UploadResult);
         setText('');
         setPhotoBase64('');
       }
     } catch (e) {
       console.error(e);
-      alert('Network error');
+      setRequestError('Ошибка сети при загрузке.');
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ paddingBottom: 40, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="page-shell" style={{ paddingBottom: 40 }}>
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link href="/" style={{ color: 'var(--text-main)' }}><ArrowLeft size={24} /></Link>
@@ -88,7 +105,26 @@ export default function UploadPage() {
         </div>
       </div>
 
-      <div style={{ padding: 16, flex: 1 }}>
+      {!isTelegramReady && !authError && (
+        <div className="status-banner pending">
+          <div className="pulse-dot" />
+          <div>
+            <div className="status-banner-title">Подключаем Telegram</div>
+            <div className="status-banner-text">Жду подтверждённую сессию перед загрузкой, чтобы сохранение прошло с первого раза.</div>
+          </div>
+        </div>
+      )}
+
+      {(authError || requestError) && (
+        <div className="status-banner error">
+          <div>
+            <div className="status-banner-title">Загрузка недоступна</div>
+            <div className="status-banner-text">{authError || requestError}</div>
+          </div>
+        </div>
+      )}
+
+      <div className="page-content">
         {!result && !conflict ? (
           <>
             <div className="zinc-card" style={{ marginBottom: 16, borderLeft: 'none' }}>
@@ -102,6 +138,7 @@ export default function UploadPage() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 style={{ resize: 'none', marginBottom: 16 }}
+                disabled={!isTelegramReady || !!authError}
               />
 
               {photoBase64 ? (
@@ -119,7 +156,7 @@ export default function UploadPage() {
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, border: '1px dashed #27272a', borderRadius: 8, cursor: 'pointer', color: 'var(--text-muted)' }}>
                   <ImageIcon size={20} />
                   <span>Прикрепить скриншот</span>
-                  <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                  <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} disabled={!isTelegramReady || !!authError} />
                 </label>
               )}
             </div>
@@ -127,8 +164,8 @@ export default function UploadPage() {
             <button 
               className="btn-primary" 
               onClick={() => handleUpload(false)}
-              disabled={loading || (!text && !photoBase64)}
-              style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, opacity: (loading || (!text && !photoBase64)) ? 0.5 : 1 }}
+              disabled={loading || (!text && !photoBase64) || !isTelegramReady || !!authError}
+              style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}
             >
               {loading ? 'Обработка ИИ...' : (
                 <>
@@ -147,7 +184,7 @@ export default function UploadPage() {
             <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '0 0 24px' }}>
               ИИ структурировал инструкцию: <br/><strong style={{ color: '#fff' }}>{result.title}</strong>
             </p>
-            <button className="btn-primary" style={{ backgroundColor: '#27272a', color: '#fff' }} onClick={() => window.location.href = '/'}>
+            <button className="btn-primary" style={{ backgroundColor: '#27272a', color: '#fff' }} onClick={() => router.push('/')}>
                 Вернуться в базу
               </button>
           </div>
@@ -165,7 +202,7 @@ export default function UploadPage() {
             </div>
 
             <h4 style={{ margin: '0 0 12px', fontSize: 14, color: '#fff' }}>Существующие в базе:</h4>
-            {conflict.matches.map((m: any) => (
+            {conflict.matches.map((m) => (
               <div key={m.id} style={{ display: 'flex', gap: 12, padding: 12, borderBottom: '1px solid #27272a', alignItems: 'flex-start' }}>
                 <FileText size={16} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
                 <div>

@@ -1,39 +1,49 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyTelegramInitData } from '@/lib/telegramAuth';
+import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 
-function checkAuth(req: Request) {
-  const initData = req.headers.get('x-telegram-init-data');
-  const botTokenHeader = req.headers.get('x-bot-token');
-  
-  if (botTokenHeader === process.env.BOT_TOKEN) return true;
-  if (initData && verifyTelegramInitData(initData, process.env.BOT_TOKEN!)) return true;
-  if (process.env.NODE_ENV !== 'production') return true;
-  return false;
-}
+type InstructionRow = {
+  id: string;
+  title: string;
+  summary: string;
+  fullText: string;
+  tag: string;
+  sourceType: string;
+  photoUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type InstructionUpdateRow = {
+  id: string;
+  title: string;
+  summary: string;
+  fullText: string;
+  tag: string;
+  updatedAt: string;
+};
 
 // GET /api/instructions/[id]
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    if (!checkAuth(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAuthorizedRequest(req)) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
     const { id } = await params;
 
-    const results = await prisma.$queryRaw`
+    const results = await prisma.$queryRaw<InstructionRow[]>`
       SELECT id, title, summary, "fullText", tag, "sourceType", "photoUrl", "createdAt", "updatedAt"
       FROM instructions
       WHERE id = ${id}
       LIMIT 1
     `;
 
-    const instructions = results as any[];
-    if (!instructions || instructions.length === 0) {
+    if (!results || results.length === 0) {
       return NextResponse.json({ error: 'Instruction not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: instructions[0] });
+    return NextResponse.json({ success: true, data: results[0] });
   } catch (error) {
     console.error('Fetch Instruction Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -43,15 +53,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 // PUT /api/instructions/[id]
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    if (!checkAuth(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAuthorizedRequest(req)) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
     const { id } = await params;
     const body = await req.json();
     const { title, summary, fullText, tag } = body;
 
-    const updated = await prisma.$queryRaw`
+    const updated = await prisma.$queryRaw<InstructionUpdateRow[]>`
       UPDATE instructions
       SET 
         title = ${title || 'Untitled'},
@@ -63,7 +73,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       RETURNING id, title, summary, "fullText", tag, "updatedAt"
     `;
 
-    return NextResponse.json({ success: true, data: (updated as any[])[0] });
+    return NextResponse.json({ success: true, data: updated[0] });
   } catch (error) {
     console.error('Update Instruction Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -73,8 +83,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 // DELETE /api/instructions/[id]
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    if (!checkAuth(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAuthorizedRequest(req)) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
     const { id } = await params;

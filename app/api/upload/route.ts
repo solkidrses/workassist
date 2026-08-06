@@ -1,13 +1,34 @@
 import { NextResponse } from 'next/server';
-import { verifyTelegramInitData } from '@/lib/telegramAuth';
+import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
-import Anthropic from '@anthropic-ai/sdk';
 import crypto from 'crypto';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key' });
+
+type UploadRequestBody = {
+  text?: string;
+  photoBase64?: string;
+  source?: string;
+  forceSave?: boolean;
+};
+
+type ParsedInstruction = {
+  title: string;
+  summary: string;
+  tag: string;
+  fullText: string;
+};
+
+type SimilarInstructionRow = {
+  id: string;
+  title: string;
+  summary: string;
+  tag: string;
+  createdAt: string;
+  distance: number;
+};
 
 const s3Client = new S3Client({
   region: 'auto',
@@ -20,32 +41,18 @@ const s3Client = new S3Client({
 
 export async function POST(req: Request) {
   try {
-    const initData = req.headers.get('x-telegram-init-data');
-    const botTokenHeader = req.headers.get('x-bot-token');
-    
-    let isAuthorized = false;
-    
-    if (botTokenHeader === process.env.BOT_TOKEN) {
-      isAuthorized = true;
-    } else if (initData && verifyTelegramInitData(initData, process.env.BOT_TOKEN!)) {
-      isAuthorized = true;
-    } else if (process.env.NODE_ENV !== 'production') {
-      isAuthorized = true;
+    if (!isAuthorizedRequest(req)) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await req.json();
+    const body = await req.json() as UploadRequestBody;
     const { text, photoBase64, source, forceSave } = body;
-    
+
     if (!text && !photoBase64) {
       return NextResponse.json({ error: 'Text or photo is required' }, { status: 400 });
     }
 
     let uploadedPhotoUrl = null;
-    let claudeInput: any = [];
 
     // If photo exists, upload to R2 and prepare Vision prompt
     if (photoBase64) {
@@ -53,7 +60,7 @@ export async function POST(req: Request) {
       const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, 'base64');
       const filename = `${crypto.randomUUID()}.jpg`;
-      
+
       try {
         await s3Client.send(new PutObjectCommand({
           Bucket: process.env.R2_BUCKET,
@@ -66,18 +73,9 @@ export async function POST(req: Request) {
       } catch (err) {
         console.error("R2 Upload Error:", err);
       }
-
-      claudeInput.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: "image/jpeg",
-          data: base64Data,
-        }
-      });
     }
 
-    let parsed = { title: "Untitled", summary: "", tag: "general", fullText: text || "Image uploaded" };
+    let parsed: ParsedInstruction = { title: "Untitled", summary: "", tag: "general", fullText: text || "Image uploaded" };
 
     if (text) {
       // Use DeepSeek for structuring text
@@ -85,7 +83,7 @@ export async function POST(req: Request) {
         apiKey: process.env.DEEPSEEK_API_KEY || 'dummy',
         baseURL: 'https://api.deepseek.com/v1',
       });
-      
+
       try {
         const msg = await deepseek.chat.completions.create({
           model: "deepseek-chat",
@@ -105,7 +103,7 @@ Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`j
           ],
           response_format: { type: "json_object" }
         });
-        
+
         const responseText = msg.choices[0]?.message?.content || "{}";
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
@@ -121,7 +119,7 @@ Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`j
     // Step 2: Generate Embeddings (Fallback to zero-vector if dummy)
     let embeddingStr = '';
     let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
-    
+
     if (hasEmbeddingsKey) {
       try {
         const embeddingInput = `${summary}\n\n${fullText}`;
@@ -136,25 +134,25 @@ Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`j
         hasEmbeddingsKey = false;
       }
     }
-    
+
     if (!hasEmbeddingsKey) {
       embeddingStr = '[' + new Array(1536).fill(0).join(',') + ']';
     }
 
     // Step 3: Duplicate / Conflict check using pgvector
     if (!forceSave && hasEmbeddingsKey) {
-      const similar = await prisma.$queryRaw`
+      const similar = await prisma.$queryRaw<SimilarInstructionRow[]>`
         SELECT id, title, summary, tag, "createdAt", 
         (embedding <=> ${embeddingStr}::vector) as distance
         FROM instructions
         ORDER BY distance ASC
         LIMIT 3
       `;
-      
-      const results = similar as any[];
+
+      const results = similar;
       if (results.length > 0 && results[0].distance < 0.15) {
-        return NextResponse.json({ 
-          conflict: true, 
+        return NextResponse.json({
+          conflict: true,
           matches: results.filter(r => r.distance < 0.15),
           structuredData: parsed // So frontend can preserve it
         });

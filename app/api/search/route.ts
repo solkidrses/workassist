@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
-import { verifyTelegramInitData } from '@/lib/telegramAuth';
+import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+
+type SearchResultRow = {
+  id: string;
+  title: string;
+  summary: string;
+  tag: string;
+  createdAt: string;
+  similarity?: number;
+};
 
 const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
 
 export async function GET(req: Request) {
   try {
-    const initData = req.headers.get('x-telegram-init-data');
-    if (!initData || !verifyTelegramInitData(initData, process.env.BOT_TOKEN!)) {
-      if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    if (!isAuthorizedRequest(req)) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -23,7 +29,7 @@ export async function GET(req: Request) {
 
     let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
     
-    let results;
+    let results: SearchResultRow[] = [];
 
     if (hasEmbeddingsKey) {
       try {
@@ -36,7 +42,7 @@ export async function GET(req: Request) {
         const embeddingStr = `[${embedding.join(',')}]`;
 
         // Semantic search
-        const rawResults = await prisma.$queryRaw`
+        const rawResults = await prisma.$queryRaw<SearchResultRow[]>`
           SELECT id, title, summary, tag, "createdAt", 
           1 - (embedding <=> ${embeddingStr}::vector) as similarity
           FROM instructions
@@ -53,14 +59,13 @@ export async function GET(req: Request) {
     if (!hasEmbeddingsKey) {
       // Basic text search fallback
       const ILIKE = `%${query}%`;
-      const rawResults = await prisma.$queryRaw`
+      const rawResults = await prisma.$queryRaw<SearchResultRow[]>`
         SELECT id, title, summary, tag, "createdAt"
         FROM instructions
         WHERE title ILIKE ${ILIKE} OR summary ILIKE ${ILIKE} OR "fullText" ILIKE ${ILIKE}
         LIMIT 10
       `;
-      // Map to add fake similarity to match frontend expectations
-      results = (rawResults as any[]).map(r => ({ ...r, similarity: 0.5 }));
+      results = rawResults.map((result) => ({ ...result, similarity: 0.5 }));
     }
 
     return NextResponse.json({ success: true, data: results });

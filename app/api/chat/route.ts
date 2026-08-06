@@ -2,8 +2,23 @@ import { streamText } from 'ai';
 import { deepseek } from '@ai-sdk/deepseek';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
-import { verifyTelegramInitData } from '@/lib/telegramAuth';
+import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { NextResponse } from 'next/server';
+
+type ChatMessage = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+};
+
+type RetrievedInstruction = {
+  id: string;
+  title: string;
+  summary: string;
+  fullText: string;
+  tag: string;
+  createdAt: string;
+  distance?: number;
+};
 
 const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
 
@@ -11,24 +26,11 @@ export const maxDuration = 60; // Allow 60s for streaming
 
 export async function POST(req: Request) {
   try {
-    const initData = req.headers.get('x-telegram-init-data');
-    const botTokenHeader = req.headers.get('x-bot-token');
-    
-    let isAuthorized = false;
-    
-    if (botTokenHeader === process.env.BOT_TOKEN) {
-      isAuthorized = true;
-    } else if (initData && verifyTelegramInitData(initData, process.env.BOT_TOKEN!)) {
-      isAuthorized = true;
-    } else if (process.env.NODE_ENV !== 'production') {
-      isAuthorized = true;
+    if (!isAuthorizedRequest(req)) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { messages } = await req.json();
+    const { messages } = await req.json() as { messages: ChatMessage[] };
     const lastMessage = messages[messages.length - 1];
 
     if (!lastMessage || lastMessage.role !== 'user') {
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
     }
 
     let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
-    let results: any[] = [];
+    let results: RetrievedInstruction[] = [];
 
     if (hasEmbeddingsKey) {
       try {
@@ -49,14 +51,14 @@ export async function POST(req: Request) {
         const embeddingStr = `[${embedding.join(',')}]`;
 
         // Semantic search for RAG context
-        const similar = await prisma.$queryRaw`
+        const similar = await prisma.$queryRaw<RetrievedInstruction[]>`
           SELECT id, title, summary, "fullText", tag, "createdAt", 
           (embedding <=> ${embeddingStr}::vector) as distance
           FROM instructions
           ORDER BY distance ASC
           LIMIT 5
         `;
-        results = similar as any[];
+        results = similar;
       } catch (e) {
         console.error("Embedding search failed in chat, falling back to text search", e);
         hasEmbeddingsKey = false;
@@ -69,13 +71,13 @@ export async function POST(req: Request) {
       const query = lastMessage.content.trim();
       if (query.length > 2) {
         const ILIKE = `%${query}%`;
-        const rawResults = await prisma.$queryRaw`
+        const rawResults = await prisma.$queryRaw<RetrievedInstruction[]>`
           SELECT id, title, summary, "fullText", tag, "createdAt"
           FROM instructions
           WHERE title ILIKE ${ILIKE} OR summary ILIKE ${ILIKE} OR "fullText" ILIKE ${ILIKE}
           LIMIT 5
         `;
-        results = rawResults as any[];
+        results = rawResults;
       }
     }
     let contextStr = '';

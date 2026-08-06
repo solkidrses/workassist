@@ -1,42 +1,30 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyTelegramInitData } from '@/lib/telegramAuth';
+import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 
 export async function GET(req: Request) {
   try {
-    const initData = req.headers.get('x-telegram-init-data');
-    const botTokenHeader = req.headers.get('x-bot-token');
-    
-    let isAuthorized = false;
-    
-    if (botTokenHeader === process.env.BOT_TOKEN) {
-      isAuthorized = true;
-    } else if (initData && verifyTelegramInitData(initData, process.env.BOT_TOKEN!)) {
-      isAuthorized = true;
-    } else if (process.env.NODE_ENV !== 'production') {
-      isAuthorized = true;
-    }
-
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAuthorizedRequest(req)) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
     const tag = searchParams.get('tag');
 
-    let whereClause = '';
-    if (tag) {
-      whereClause = `WHERE tag = '${tag.replace(/'/g, "''")}'`;
-    }
-
-    // Use raw query to avoid fetching embeddings which are large
-    const results = await prisma.$queryRawUnsafe(`
-      SELECT id, title, summary, tag, "createdAt", "sourceType"
-      FROM instructions
-      ${whereClause}
-      ORDER BY "createdAt" DESC
-      LIMIT 50
-    `);
+    const results = tag
+      ? await prisma.$queryRaw`
+          SELECT id, title, summary, tag, "createdAt", "sourceType"
+          FROM instructions
+          WHERE tag = ${tag}
+          ORDER BY "createdAt" DESC
+          LIMIT 50
+        `
+      : await prisma.$queryRaw`
+          SELECT id, title, summary, tag, "createdAt", "sourceType"
+          FROM instructions
+          ORDER BY "createdAt" DESC
+          LIMIT 50
+        `;
 
     return NextResponse.json({ success: true, data: results });
 

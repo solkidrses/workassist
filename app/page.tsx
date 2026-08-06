@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, MessageSquare, Book } from 'lucide-react';
 import Link from 'next/link';
+import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
 type Instruction = {
   id: string;
@@ -14,78 +15,115 @@ type Instruction = {
 }
 
 export default function LibraryPage() {
-  const [initDataRaw, setInitDataRaw] = useState('');
-  
   const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-      const tg = (window as any).Telegram.WebApp;
-      tg.ready();
-      setInitDataRaw(tg.initData || '');
-    }
-  }, []);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
 
   const [selectedTag, setSelectedTag] = useState('all');
 
   const TAGS = ['all', 'vpn', 'tma', 'cs2', 'clario', 'general'];
 
-  useEffect(() => {
-    fetchInstructions();
-  }, [initDataRaw, selectedTag]);
+  const fetchInstructions = useCallback(async () => {
+    if (!isTelegramReady) {
+      return;
+    }
 
-  const fetchInstructions = async () => {
     setLoading(true);
+    setRequestError(null);
     try {
       const url = selectedTag === 'all' 
         ? '/api/instructions' 
         : `/api/instructions?tag=${encodeURIComponent(selectedTag)}`;
 
       const res = await fetch(url, {
-        headers: { 'x-telegram-init-data': initDataRaw }
+        headers: authHeaders,
+        cache: 'no-store'
       });
       const data = await res.json();
       if (data.success) {
         setInstructions(data.data);
+      } else {
+        setRequestError(data.error || 'Не удалось загрузить базу.');
       }
     } catch (e) {
       console.error(e);
+      setRequestError('Ошибка сети при загрузке базы.');
     }
     setLoading(false);
-  };
+  }, [authHeaders, isTelegramReady, selectedTag]);
+
+  useEffect(() => {
+    if (!isTelegramReady) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void fetchInstructions();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchInstructions, isTelegramReady]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isTelegramReady) {
+      return;
+    }
+
     if (!query.trim()) {
       return fetchInstructions();
     }
     
     setIsSearching(true);
     setLoading(true);
+    setRequestError(null);
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
-        headers: { 'x-telegram-init-data': initDataRaw }
+        headers: authHeaders,
+        cache: 'no-store'
       });
       const data = await res.json();
       if (data.success) {
         setInstructions(data.data);
+      } else {
+        setRequestError(data.error || 'Поиск временно недоступен.');
       }
     } catch (e) {
       console.error(e);
+      setRequestError('Ошибка сети при поиске.');
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ paddingBottom: 80 }}>
+    <div className="page-shell" style={{ paddingBottom: 80 }}>
       <div className="header">
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Библиотека</h1>
       </div>
 
-      <div style={{ padding: 16 }}>
+      {!isTelegramReady && !authError && (
+        <div className="status-banner pending">
+          <div className="pulse-dot" />
+          <div>
+            <div className="status-banner-title">Подключаем Telegram</div>
+            <div className="status-banner-text">Жду подтверждённую сессию перед загрузкой базы, чтобы не ловить пустые ответы и 401.</div>
+          </div>
+        </div>
+      )}
+
+      {(authError || requestError) && (
+        <div className="status-banner error">
+          <div>
+            <div className="status-banner-title">База пока недоступна</div>
+            <div className="status-banner-text">{authError || requestError}</div>
+          </div>
+        </div>
+      )}
+
+      <div className="page-content">
         <form onSubmit={handleSearch} style={{ position: 'relative', marginBottom: 12 }}>
           <input 
             type="text" 
@@ -94,6 +132,7 @@ export default function LibraryPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{ paddingLeft: 40 }}
+            disabled={!isTelegramReady || !!authError}
           />
           <Search size={18} style={{ position: 'absolute', left: 12, top: 14, color: 'var(--text-muted)' }} />
           {isSearching && query.trim() !== '' && (
@@ -135,8 +174,8 @@ export default function LibraryPage() {
           })}
         </div>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>Загрузка...</div>
+        {loading && !authError ? (
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>{isTelegramReady ? 'Загрузка...' : 'Подключение...'}</div>
         ) : instructions.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>
             Ничего не найдено
@@ -189,28 +228,15 @@ export default function LibraryPage() {
       </Link>
 
       {/* Bottom Navigation */}
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 60,
-        backgroundColor: 'var(--bg-main)',
-        borderTop: '1px solid #27272a',
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        zIndex: 10
-      }}>
-        <a href="/" style={{ color: 'var(--accent)', display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
+      <div className="panel-fixed bottom-nav">
+        <Link href="/" className="bottom-nav-link active">
           <Book size={24} />
           <span style={{ fontSize: 10, marginTop: 4, fontWeight: 500 }}>База</span>
-        </a>
-        <a href="/chat" style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
+        </Link>
+        <Link href="/chat" className="bottom-nav-link">
           <MessageSquare size={24} />
           <span style={{ fontSize: 10, marginTop: 4 }}>Чат ИИ</span>
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ export function verifyTelegramInitData(initDataString: string, botToken: string)
     const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
     return calculatedHash === hash;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
