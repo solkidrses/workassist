@@ -235,7 +235,7 @@ export default function LibraryPage() {
         </Link>
         <Link href="/chat" className="bottom-nav-link">
           <MessageSquare size={24} />
-          <span style={{ fontSize: 10, marginTop: 4 }}>Чат ИИ</span>
+          <span style={{ fontSize: 10, marginTop: 4 }}>Чат</span>
         </Link>
       </div>
     </div>
