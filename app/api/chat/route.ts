@@ -18,16 +18,8 @@ type RetrievedInstruction = {
   distance?: number;
 };
 
-type ResponseOutputTextDelta = {
-  type: 'response.output_text.delta';
-  delta: string;
-};
-
-type ResponseStreamEvent =
-  | ResponseOutputTextDelta
-  | { type: string };
-
 const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
+
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 
@@ -113,58 +105,21 @@ Guidelines:
     const contextSection = results.length > 0 ? `Context instructions:\n\n${contextStr}\n\n---\n\n` : '';
     const input = `${contextSection}User question: ${lastMessage.content}`;
 
-    const apiRes = await fetch(`${DEEPSEEK_BASE_URL}/responses`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        instructions,
-        input,
-        stream: true,
-      }),
+    const deepseekClient = new OpenAI({ apiKey: DEEPSEEK_API_KEY, baseURL: DEEPSEEK_BASE_URL });
+
+    const stream = await deepseekClient.responses.create({
+      model: 'deepseek-v4-flash',
+      instructions,
+      input,
+      stream: true,
     });
 
-    if (!apiRes.ok) {
-      const errorBody = await apiRes.text();
-      console.error('DeepSeek Responses API error:', errorBody);
-      return NextResponse.json({ error: 'DeepSeek API error' }, { status: 502 });
-    }
-
-    const reader = apiRes.body?.getReader();
-    if (!reader) {
-      return NextResponse.json({ error: 'No response stream' }, { status: 502 });
-    }
-
-    const encoder = new TextEncoder();
     const textStream = new ReadableStream<Uint8Array>({
       async start(controller) {
-        const decoder = new TextDecoder();
-        let buffer = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith('data:')) continue;
-            const data = trimmed.slice(5).trim();
-            if (data === '[DONE]') {
-              controller.close();
-              return;
-            }
-            try {
-              const parsed = JSON.parse(data) as ResponseStreamEvent;
-              if (parsed.type === 'response.output_text.delta' && 'delta' in parsed) {
-                controller.enqueue(encoder.encode(parsed.delta));
-              }
-            } catch {
-              // Skip malformed or empty SSE lines
-            }
+        const encoder = new TextEncoder();
+        for await (const event of stream) {
+          if (event.type === 'response.output_text.delta') {
+            controller.enqueue(encoder.encode((event as { delta: string }).delta));
           }
         }
         controller.close();
