@@ -19,6 +19,7 @@ type RetrievedInstruction = {
 };
 
 type ResponseInputItem = {
+  type: 'message';
   role: 'user' | 'assistant';
   content: string;
 };
@@ -121,7 +122,7 @@ ${contextStr}
 
     const input: ResponseInputItem[] = messages
       .filter((m): m is ChatMessage & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ role: m.role, content: m.content }));
+      .map((m) => ({ type: 'message' as const, role: m.role, content: m.content }));
 
     const apiRes = await fetch(`${DEEPSEEK_BASE_URL}/responses`, {
       method: 'POST',
