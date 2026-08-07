@@ -11,7 +11,7 @@ def main():
 
     for cmd in [
         "pm2 logs next-app --lines 200 --nostream 2>/dev/null | tail -120",
-        "grep -E 'DEBUG|Chat Error' /root/.pm2/logs/next-app-error.log 2>/dev/null | tail -40",
+        "grep -E 'Chat Error' /root/.pm2/logs/next-app-error.log 2>/dev/null | tail -40",
         "tail -n 80 /root/.pm2/logs/next-app-error.log 2>/dev/null | tail -80",
         "journalctl -u pm2-root -n 80 --no-pager 2>/dev/null | tail -80",
     ]:
