@@ -3,7 +3,8 @@ import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import crypto from 'crypto';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
 const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
 
@@ -30,14 +31,6 @@ type SimilarInstructionRow = {
   distance: number;
 };
 
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-  },
-});
 
 export async function POST(req: Request) {
   try {
@@ -55,31 +48,20 @@ export async function POST(req: Request) {
     let uploadedPhotoUrl = null;
     let photoError = null;
 
-    // If photo exists, upload to R2
+    // If photo exists, save locally to public/uploads/
     if (photoBase64) {
-      const r2Configured = process.env.R2_ACCOUNT_ID && process.env.R2_ACCOUNT_ID !== 'dummy'
-        && process.env.R2_BUCKET && process.env.R2_BUCKET !== 'dummy'
-        && process.env.R2_PUBLIC_DOMAIN && process.env.R2_PUBLIC_DOMAIN !== 'dummy';
+      const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, 'base64');
+      const filename = `${crypto.randomUUID()}.jpg`;
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 
-      if (!r2Configured) {
-        photoError = 'Хранилище фото (R2) не настроено. Обратитесь к администратору.';
-      } else {
-        const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, 'base64');
-        const filename = `${crypto.randomUUID()}.jpg`;
-
-        try {
-          await s3Client.send(new PutObjectCommand({
-            Bucket: process.env.R2_BUCKET,
-            Key: filename,
-            Body: buffer,
-            ContentType: 'image/jpeg'
-          }));
-          uploadedPhotoUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${filename}`;
-        } catch (err) {
-          console.error("R2 Upload Error:", err);
-          photoError = 'Не удалось загрузить фото в хранилище. Инструкция сохранена без фото.';
-        }
+      try {
+        await mkdir(uploadsDir, { recursive: true });
+        await writeFile(path.join(uploadsDir, filename), buffer);
+        uploadedPhotoUrl = `/uploads/${filename}`;
+      } catch (err) {
+        console.error("Photo save error:", err);
+        photoError = 'Не удалось сохранить фото. Инструкция сохранена без фото.';
       }
     }
 

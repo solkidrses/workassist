@@ -21,11 +21,13 @@ def main():
             print("Build failed:", result.stderr)
             return
 
-    # Tar the .next directory
-    print("Packing .next...")
+    # Tar the .next and public directories
+    print("Packing .next and public...")
     tar_path = os.path.join(LOCAL_DIR, "next-build.tar.gz")
     with tarfile.open(tar_path, "w:gz") as tar:
         tar.add(".next", arcname=".next")
+        if os.path.isdir("public"):
+            tar.add("public", arcname="public")
 
     print(f"Archive size: {os.path.getsize(tar_path) / 1024 / 1024:.2f} MB")
 
@@ -43,7 +45,11 @@ def main():
 
     print("Extracting and restarting...")
     stdin, stdout, stderr = ssh.exec_command(
-        f"cd {PROJECT_DIR} && rm -rf .next && tar -xzf next-build.tar.gz && rm next-build.tar.gz && pm2 restart next-app",
+        f"cd {PROJECT_DIR} && "
+        f"if [ -d public/uploads ]; then cp -r public/uploads /tmp/uploads_backup; fi && "
+        f"rm -rf .next && tar -xzf next-build.tar.gz && rm next-build.tar.gz && "
+        f"if [ -d /tmp/uploads_backup ]; then cp -r /tmp/uploads_backup/* public/uploads/ 2>/dev/null; rm -rf /tmp/uploads_backup; fi && "
+        f"pm2 restart next-app",
         timeout=120,
     )
     out = stdout.read().decode("utf-8", errors="replace")
