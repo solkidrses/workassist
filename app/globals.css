@@ -63,7 +63,6 @@ a, button {
   transform: translateY(-2px);
   border-left-width: 5px;
   background-color: #16171a;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 124, 59, 0.1);
 }
 
 .zinc-card:active {
@@ -133,8 +132,7 @@ a, button {
   cursor: pointer;
   width: 100%;
   font-size: 16px;
-  transition: opacity 0.2s, transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 10px 24px rgba(255, 124, 59, 0.24);
+  transition: opacity 0.2s, transform 0.2s ease;
 }
 
 .btn-primary:active {
@@ -145,7 +143,6 @@ a, button {
 .btn-primary:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-  box-shadow: none;
 }
 
 .header {
@@ -438,7 +435,6 @@ a, button {
   background-color: var(--accent);
   color: #000;
   border-color: transparent;
-  box-shadow: 0 4px 14px var(--accent-glow);
   transform: scale(1.05);
 }
 
