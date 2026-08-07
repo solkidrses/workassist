@@ -1,8 +1,29 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 
-function renderMarkdown(text: string): React.ReactNode[] {
+function PhotoOverlay({ src, onClose }: { src: string; onClose: () => void }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.9)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+        animation: 'page-enter 0.2s ease both',
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="Full photo" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, objectFit: 'contain' }} />
+    </div>
+  );
+}
+
+function renderMarkdown(text: string, onPhotoClick: (src: string) => void): React.ReactNode[] {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let key = 0;
@@ -12,9 +33,9 @@ function renderMarkdown(text: string): React.ReactNode[] {
     const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (imgMatch) {
       elements.push(
-        <div key={key++} style={{ marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden' }}>
+        <div key={key++} style={{ marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden', width: 120, height: 120 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imgMatch[2]} alt={imgMatch[1]} style={{ width: '100%', maxHeight: 400, objectFit: 'contain' }} />
+          <img src={imgMatch[2]} alt={imgMatch[1]} onClick={() => onPhotoClick(imgMatch[2])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} />
         </div>
       );
       continue;
@@ -25,23 +46,24 @@ function renderMarkdown(text: string): React.ReactNode[] {
     if (inlineImgPattern.test(line)) {
       inlineImgPattern.lastIndex = 0;
       const parts: React.ReactNode[] = [];
-      let lastIdx = 0;
-      let match;
-      let partKey = 0;
-      while ((match = inlineImgPattern.exec(line)) !== null) {
-        if (match.index > lastIdx) {
-          parts.push(<React.Fragment key={partKey++}>{line.slice(lastIdx, match.index)}</React.Fragment>);
+      let imgLastIdx = 0;
+      let imgPartKey = 0;
+      let imgMatch: RegExpExecArray | null;
+      while ((imgMatch = inlineImgPattern.exec(line)) !== null) {
+        if (!imgMatch) continue;
+        if (imgMatch.index > imgLastIdx) {
+          parts.push(<React.Fragment key={imgPartKey++}>{line.slice(imgLastIdx, imgMatch.index)}</React.Fragment>);
         }
         parts.push(
-          <span key={partKey++} style={{ display: 'inline-block', verticalAlign: 'middle', margin: '4px 0', borderRadius: 8, overflow: 'hidden' }}>
+          <span key={imgPartKey++} style={{ display: 'inline-block', verticalAlign: 'middle', margin: '4px 0', borderRadius: 8, overflow: 'hidden', width: 100, height: 100 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={match[2]} alt={match[1]} style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain' }} />
+            <img src={imgMatch[2]} alt={imgMatch[1]} onClick={() => onPhotoClick(imgMatch![2])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} />
           </span>
         );
-        lastIdx = match.index + match[0].length;
+        imgLastIdx = imgMatch.index + imgMatch[0].length;
       }
-      if (lastIdx < line.length) {
-        parts.push(<React.Fragment key={partKey++}>{line.slice(lastIdx)}</React.Fragment>);
+      if (imgLastIdx < line.length) {
+        parts.push(<React.Fragment key={imgPartKey++}>{line.slice(imgLastIdx)}</React.Fragment>);
       }
       elements.push(<div key={key++}>{parts}</div>);
       continue;
@@ -50,18 +72,19 @@ function renderMarkdown(text: string): React.ReactNode[] {
     // Bold **text**
     const boldParts: React.ReactNode[] = [];
     const boldPattern = /\*\*([^*]+)\*\*/g;
-    let lastIdx = 0;
-    let match;
-    let partKey = 0;
-    while ((match = boldPattern.exec(line)) !== null) {
-      if (match.index > lastIdx) {
-        boldParts.push(<React.Fragment key={partKey++}>{line.slice(lastIdx, match.index)}</React.Fragment>);
+    let boldLastIdx = 0;
+    let boldPartKey = 0;
+    let boldMatch: RegExpExecArray | null;
+    while ((boldMatch = boldPattern.exec(line)) !== null) {
+      if (!boldMatch) continue;
+      if (boldMatch.index > boldLastIdx) {
+        boldParts.push(<React.Fragment key={boldPartKey++}>{line.slice(boldLastIdx, boldMatch.index)}</React.Fragment>);
       }
-      boldParts.push(<strong key={partKey++}>{match[1]}</strong>);
-      lastIdx = match.index + match[0].length;
+      boldParts.push(<strong key={boldPartKey++}>{boldMatch[1]}</strong>);
+      boldLastIdx = boldMatch.index + boldMatch[0].length;
     }
-    if (lastIdx < line.length) {
-      boldParts.push(<React.Fragment key={partKey++}>{line.slice(lastIdx)}</React.Fragment>);
+    if (boldLastIdx < line.length) {
+      boldParts.push(<React.Fragment key={boldPartKey++}>{line.slice(boldLastIdx)}</React.Fragment>);
     }
     if (boldParts.length > 0) {
       elements.push(<div key={key++}>{boldParts}</div>);
@@ -71,24 +94,26 @@ function renderMarkdown(text: string): React.ReactNode[] {
     // Code block `code`
     const codeParts: React.ReactNode[] = [];
     const codePattern = /`([^`]+)`/g;
-    lastIdx = 0;
-    partKey = 0;
+    let codeLastIdx = 0;
+    let codePartKey = 0;
+    let codeMatch: RegExpExecArray | null;
     let hasCode = false;
-    while ((match = codePattern.exec(line)) !== null) {
-      if (match.index > lastIdx) {
-        codeParts.push(<React.Fragment key={partKey++}>{line.slice(lastIdx, match.index)}</React.Fragment>);
+    while ((codeMatch = codePattern.exec(line)) !== null) {
+      if (!codeMatch) continue;
+      if (codeMatch.index > codeLastIdx) {
+        codeParts.push(<React.Fragment key={codePartKey++}>{line.slice(codeLastIdx, codeMatch.index)}</React.Fragment>);
       }
       codeParts.push(
-        <code key={partKey++} style={{ backgroundColor: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: 4, fontSize: 13, fontFamily: 'monospace' }}>
-          {match[1]}
+        <code key={codePartKey++} style={{ backgroundColor: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: 4, fontSize: 13, fontFamily: 'monospace' }}>
+          {codeMatch[1]}
         </code>
       );
-      lastIdx = match.index + match[0].length;
+      codeLastIdx = codeMatch.index + codeMatch[0].length;
       hasCode = true;
     }
     if (hasCode) {
-      if (lastIdx < line.length) {
-        codeParts.push(<React.Fragment key={partKey++}>{line.slice(lastIdx)}</React.Fragment>);
+      if (codeLastIdx < line.length) {
+        codeParts.push(<React.Fragment key={codePartKey++}>{line.slice(codeLastIdx)}</React.Fragment>);
       }
       elements.push(<div key={key++}>{codeParts}</div>);
       continue;
@@ -106,5 +131,11 @@ function renderMarkdown(text: string): React.ReactNode[] {
 }
 
 export default function MarkdownText({ content }: { content: string }) {
-  return <>{renderMarkdown(content)}</>;
+  const [photoSrc, setPhotoSrc] = useState<string | null>(null);
+  return (
+    <>
+      {renderMarkdown(content, setPhotoSrc)}
+      {photoSrc && <PhotoOverlay src={photoSrc} onClose={() => setPhotoSrc(null)} />}
+    </>
+  );
 }

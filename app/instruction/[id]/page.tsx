@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Save, Calendar } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Save, Calendar, X } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
 type Instruction = {
@@ -30,6 +30,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
+  const [photoViewer, setPhotoViewer] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
 
   const [editTitle, setEditTitle] = useState('');
@@ -310,9 +311,14 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             )}
 
             {instruction.photoUrl && (
-              <div className="detail-enter" style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid #27272a', animationDelay: '0.08s' }}>
+              <div className="detail-enter" style={{ marginBottom: 16, animationDelay: '0.08s' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={instruction.photoUrl} alt="Attached photo" style={{ width: '100%', maxHeight: 300, objectFit: 'cover' }} />
+                <img
+                  src={instruction.photoUrl}
+                  alt="Attached photo"
+                  onClick={() => setPhotoViewer(instruction.photoUrl!)}
+                  style={{ width: 120, height: 120, borderRadius: 10, objectFit: 'cover', cursor: 'pointer', border: '1px solid #27272a' }}
+                />
               </div>
             )}
 
@@ -327,6 +333,31 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
       </div>
+
+      {photoViewer && (
+        <div
+          onClick={() => setPhotoViewer(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            animation: 'page-enter 0.2s ease both',
+          }}
+        >
+          <button
+            onClick={() => setPhotoViewer(null)}
+            style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}
+          >
+            <X size={22} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoViewer} alt="Full photo" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, objectFit: 'contain' }} />
+        </div>
+      )}
     </div>
   );
 }

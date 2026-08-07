@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
-    const { messages } = await req.json() as { messages: ChatMessage[] };
+    const { messages, sessionId } = await req.json() as { messages: ChatMessage[]; sessionId?: string };
     const lastMessage = messages[messages.length - 1];
 
     if (!lastMessage || lastMessage.role !== 'user') {
@@ -42,6 +42,16 @@ export async function POST(req: Request) {
 
     if (!DEEPSEEK_API_KEY) {
       return NextResponse.json({ error: 'DEEPSEEK_API_KEY is not configured' }, { status: 500 });
+    }
+
+    let activeSessionId = sessionId;
+
+    // Create new session if none provided
+    if (!activeSessionId) {
+      const sessionTitle = lastMessage.content.split(' ').slice(0, 5).join(' ').substring(0, 60);
+      const newId = crypto.randomUUID();
+      await prisma.$executeRaw`INSERT INTO chat_sessions (id, title, "createdAt") VALUES (${newId}, ${sessionTitle}, NOW())`;
+      activeSessionId = newId;
     }
 
     let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
@@ -73,19 +83,25 @@ export async function POST(req: Request) {
     }
 
     if (!hasEmbeddingsKey) {
-      // Basic text search fallback using the user's message as query
-      // Split message by space to get keywords, and search using ILIKE
+      // Keyword-based text search fallback
       try {
         const query = lastMessage.content.trim();
         if (query.length > 2) {
-          const ILIKE = `%${query}%`;
-          const rawResults = await prisma.$queryRaw<RetrievedInstruction[]>`
-            SELECT id, title, summary, "fullText", tag, "createdAt", "photoUrl"
-            FROM instructions
-            WHERE title ILIKE ${ILIKE} OR summary ILIKE ${ILIKE} OR "fullText" ILIKE ${ILIKE}
-            LIMIT 5
-          `;
-          results = rawResults;
+          const stopWords = new Set(['как', 'что', 'где', 'почему', 'зачем', 'чем', 'для', 'это', 'так', 'или', 'the', 'how', 'what', 'where', 'why']);
+          const words = query.split(/\s+/)
+            .map(w => w.replace(/[^\wа-яё]/gi, '').toLowerCase())
+            .filter(w => w.length > 2 && !stopWords.has(w));
+
+          if (words.length > 0) {
+            const conditions = words.map(w => `title ILIKE '%${w}%' OR summary ILIKE '%${w}%' OR "fullText" ILIKE '%${w}%'`).join(' OR ');
+            const rawResults = await prisma.$queryRawUnsafe<RetrievedInstruction[]>(
+              `SELECT id, title, summary, "fullText", tag, "createdAt", "photoUrl"
+               FROM instructions
+               WHERE ${conditions}
+               LIMIT 5`
+            );
+            results = rawResults;
+          }
         }
       } catch (e) {
         console.error('Text search failed in chat, continuing without context', e);
@@ -152,8 +168,8 @@ export async function POST(req: Request) {
         try {
           const userMsgId = crypto.randomUUID();
           const assistantMsgId = crypto.randomUUID();
-          await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "createdAt") VALUES (${userMsgId}, 'user', ${lastMessage.content}, NOW())`;
-          await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "createdAt") VALUES (${assistantMsgId}, 'assistant', ${fullResponse}, NOW())`;
+          await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "sessionId", "createdAt") VALUES (${userMsgId}, 'user', ${lastMessage.content}, ${activeSessionId}, NOW())`;
+          await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "sessionId", "createdAt") VALUES (${assistantMsgId}, 'assistant', ${fullResponse}, ${activeSessionId}, NOW())`;
         } catch (dbErr) {
           console.error('Failed to save chat history:', dbErr);
         }
@@ -164,6 +180,7 @@ export async function POST(req: Request) {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
+        'X-Session-Id': activeSessionId,
       },
     });
 

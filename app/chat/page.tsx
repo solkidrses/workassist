@@ -1,6 +1,6 @@
 'use client'
 
-import { Send, Trash2 } from 'lucide-react';
+import { Send, Trash2, Plus, MessageSquare, X, Trash } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 import MarkdownText from '@/components/MarkdownText';
@@ -19,23 +19,60 @@ type Message = {
   content: string;
 }
 
+type ChatSession = {
+  id: string;
+  title: string;
+  createdAt: string;
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const HISTORY_CACHE_KEY = 'chat_history_cache';
+  const SESSIONS_CACHE_KEY = 'chat_sessions_cache';
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load chat history on mount
+  const loadSessionMessages = async (sessionId: string) => {
+    setHistoryLoaded(false);
+    try {
+      const res = await fetch(`/api/chat/history?sessionId=${encodeURIComponent(sessionId)}`, {
+        headers: authHeaders,
+        cache: 'no-store',
+      });
+      const data = await res.json();
+      if (data.success && data.data.length > 0) {
+        const historyMessages: Message[] = data.data.map((m: { id: string; role: string; content: string }) => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }));
+        setMessages(historyMessages);
+        sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify({ sessionId, messages: historyMessages }));
+      } else {
+        setMessages([]);
+        sessionStorage.removeItem(HISTORY_CACHE_KEY);
+      }
+    } catch (e) {
+      console.error('Failed to load session messages:', e);
+    } finally {
+      setHistoryLoaded(true);
+    }
+  };
+
+  // Load sessions and latest session messages on mount
   useEffect(() => {
     if (!isTelegramReady) return;
 
@@ -43,51 +80,90 @@ export default function ChatPage() {
     try {
       const cached = sessionStorage.getItem(HISTORY_CACHE_KEY);
       if (cached) {
-        const cachedMessages: Message[] = JSON.parse(cached);
-        if (cachedMessages.length > 0) {
-          setMessages(cachedMessages);
+        const cache = JSON.parse(cached) as { sessionId: string; messages: Message[] };
+        if (cache.messages.length > 0) {
+          setMessages(cache.messages);
+          setCurrentSessionId(cache.sessionId);
           setHistoryLoaded(true);
         }
       }
     } catch {}
 
-    // Fetch fresh from server
     (async () => {
       try {
-        const res = await fetch('/api/chat/history', {
+        // Load sessions list
+        const sessionsRes = await fetch('/api/chat/sessions', {
           headers: authHeaders,
           cache: 'no-store',
         });
-        const data = await res.json();
-        if (data.success && data.data.length > 0) {
-          const historyMessages: Message[] = data.data.map((m: { id: string; role: string; content: string }) => ({
-            id: m.id,
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-          }));
-          setMessages(historyMessages);
-          sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(historyMessages));
+        const sessionsData = await sessionsRes.json();
+        if (sessionsData.success) {
+          setSessions(sessionsData.data);
+          sessionStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(sessionsData.data));
+
+          // If no cached session, load latest
+          if (sessionsData.data.length > 0) {
+            const latest = sessionsData.data[0].id;
+            setCurrentSessionId(latest);
+            await loadSessionMessages(latest);
+          } else {
+            setHistoryLoaded(true);
+          }
         } else {
-          setMessages([]);
-          sessionStorage.removeItem(HISTORY_CACHE_KEY);
+          setHistoryLoaded(true);
         }
       } catch (e) {
-        console.error('Failed to load chat history:', e);
-      } finally {
+        console.error('Failed to load sessions:', e);
         setHistoryLoaded(true);
       }
     })();
   }, [authHeaders, isTelegramReady]);
 
+  const handleNewChat = () => {
+    setCurrentSessionId(null);
+    setMessages([]);
+    sessionStorage.removeItem(HISTORY_CACHE_KEY);
+  };
+
+  const handleSelectSession = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    setSessionsOpen(false);
+    void loadSessionMessages(sessionId);
+  };
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    if (!confirm('Удалить этот чат?')) return;
+    try {
+      await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+        setMessages([]);
+        sessionStorage.removeItem(HISTORY_CACHE_KEY);
+      }
+      const updated = sessions.filter(s => s.id !== sessionId);
+      sessionStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to delete session:', e);
+    }
+  };
+
   const handleClearHistory = async () => {
-    if (!confirm('Очистить всю историю чата?')) return;
+    if (!currentSessionId) return;
+    if (!confirm('Очистить текущий чат?')) return;
     setClearing(true);
     try {
-      await fetch('/api/chat/history', {
+      await fetch(`/api/chat/history?sessionId=${encodeURIComponent(currentSessionId)}`, {
         method: 'DELETE',
         headers: authHeaders,
       });
       setMessages([]);
+      setSessions(prev => prev.filter(s => s.id !== currentSessionId));
+      setCurrentSessionId(null);
       sessionStorage.removeItem(HISTORY_CACHE_KEY);
     } catch (e) {
       console.error('Failed to clear history:', e);
@@ -115,7 +191,7 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
           ...authHeaders,
         },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ messages: updatedMessages, sessionId: currentSessionId }),
       });
 
       if (!response.ok) {
@@ -143,10 +219,31 @@ export default function ChatPage() {
         }
       }
 
+      // Read session id from response header
+      const newSessionId = response.headers.get('X-Session-Id') || currentSessionId;
+      if (newSessionId && newSessionId !== currentSessionId) {
+        setCurrentSessionId(newSessionId);
+      }
+
+      // Refresh sessions list
+      try {
+        const sessionsRes = await fetch('/api/chat/sessions', {
+          headers: authHeaders,
+          cache: 'no-store',
+        });
+        const sessionsData = await sessionsRes.json();
+        if (sessionsData.success) {
+          setSessions(sessionsData.data);
+          sessionStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(sessionsData.data));
+        }
+      } catch {}
+
       // Update cache with final messages
       setMessages(prev => {
         const updated = [...prev];
-        sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(updated));
+        if (newSessionId) {
+          sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify({ sessionId: newSessionId, messages: updated }));
+        }
         return updated;
       });
     } catch (e) {
@@ -162,15 +259,32 @@ export default function ChatPage() {
     <div className="page-shell" style={{ paddingBottom: 130 }}>
       <div className="header">
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Чат</h1>
-        {messages.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {currentSessionId && (
+            <button
+              onClick={handleClearHistory}
+              disabled={clearing}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
           <button
-            onClick={handleClearHistory}
-            disabled={clearing}
+            onClick={() => setSessionsOpen(true)}
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
           >
-            <Trash2 size={18} />
+            <MessageSquare size={18} />
+            {sessions.length > 0 && (
+              <span style={{ marginLeft: 4, fontSize: 12, color: 'var(--accent)' }}>{sessions.length}</span>
+            )}
           </button>
-        )}
+          <button
+            onClick={handleNewChat}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+          >
+            <Plus size={20} />
+          </button>
+        </div>
       </div>
 
       {!isTelegramReady && !authError && (
@@ -242,6 +356,60 @@ export default function ChatPage() {
           </button>
         </form>
       </div>
+
+      {sessionsOpen && (
+        <div
+          onClick={() => setSessionsOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 90, animation: 'page-enter 0.2s ease both' }}
+        />
+      )}
+
+      {sessionsOpen && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg-elevated)', borderTop: '1px solid var(--border-subtle)', borderRadius: '16px 16px 0 0', zIndex: 95, maxHeight: '70vh', display: 'flex', flexDirection: 'column', animation: 'edit-slide-in 0.25s var(--ease-out) both' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid var(--border-subtle)' }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>История чатов</h2>
+            <button onClick={() => setSessionsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <X size={22} />
+            </button>
+          </div>
+          <div style={{ overflowY: 'auto', padding: '8px 16px 16px' }}>
+            {sessions.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>
+                Нет сохранённых чатов
+              </div>
+            ) : (
+              sessions.map(s => (
+                <div
+                  key={s.id}
+                  onClick={() => handleSelectSession(s.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: 12,
+                    borderRadius: 10,
+                    marginBottom: 8,
+                    background: currentSessionId === s.id ? 'rgba(251,146,60,0.15)' : 'transparent',
+                    border: `1px solid ${currentSessionId === s.id ? 'var(--accent)' : '#27272a'}`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ overflow: 'hidden' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(s.createdAt).toLocaleDateString('ru-RU')}</div>
+                  </div>
+                  <button
+                    onClick={(e) => handleDeleteSession(e, s.id)}
+                    style={{ background: 'none', border: 'none', color: '#ff4757', cursor: 'pointer', padding: 4, flexShrink: 0 }}
+                  >
+                    <Trash size={18} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

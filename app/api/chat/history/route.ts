@@ -15,12 +15,23 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
-    const rows = await prisma.$queryRaw<ChatHistoryRow[]>`
-      SELECT id, role, content, "createdAt"
-      FROM chat_messages
-      ORDER BY "createdAt" ASC
-      LIMIT 100
-    `;
+    const { searchParams } = new URL(req.url);
+    const sessionId = searchParams.get('sessionId');
+
+    const rows = sessionId
+      ? await prisma.$queryRaw<ChatHistoryRow[]>`
+          SELECT id, role, content, "createdAt"
+          FROM chat_messages
+          WHERE "sessionId" = ${sessionId}
+          ORDER BY "createdAt" ASC
+          LIMIT 100
+        `
+      : await prisma.$queryRaw<ChatHistoryRow[]>`
+          SELECT id, role, content, "createdAt"
+          FROM chat_messages
+          ORDER BY "createdAt" ASC
+          LIMIT 100
+        `;
 
     return NextResponse.json({ success: true, data: rows });
   } catch (error) {
@@ -35,7 +46,16 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
     }
 
-    await prisma.$executeRaw`DELETE FROM chat_messages`;
+    const { searchParams } = new URL(req.url);
+    const sessionId = searchParams.get('sessionId');
+
+    if (sessionId) {
+      await prisma.$executeRaw`DELETE FROM chat_messages WHERE "sessionId" = ${sessionId}`;
+      await prisma.$executeRaw`DELETE FROM chat_sessions WHERE id = ${sessionId}`;
+    } else {
+      await prisma.$executeRaw`DELETE FROM chat_messages`;
+      await prisma.$executeRaw`DELETE FROM chat_sessions`;
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       try {
         await mkdir(uploadsDir, { recursive: true });
         await writeFile(path.join(uploadsDir, filename), buffer);
-        uploadedPhotoUrl = `/uploads/${filename}`;
+        uploadedPhotoUrl = `/api/photos/${filename}`;
       } catch (err) {
         console.error("Photo save error:", err);
         photoError = 'Не удалось сохранить фото. Инструкция сохранена без фото.';
