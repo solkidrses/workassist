@@ -176,6 +176,8 @@ a, button {
   background: rgba(9, 9, 11, 0.94);
   backdrop-filter: blur(18px);
   border-top: 1px solid var(--border-subtle);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .status-banner {
@@ -547,6 +549,9 @@ a, button {
 /* ─── Page Transition ─── */
 .page-transition {
   animation: page-enter 0.25s ease both;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (prefers-reduced-motion: reduce) {
