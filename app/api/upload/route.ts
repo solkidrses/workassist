@@ -53,25 +53,33 @@ export async function POST(req: Request) {
     }
 
     let uploadedPhotoUrl = null;
+    let photoError = null;
 
-    // If photo exists, upload to R2 and prepare Vision prompt
+    // If photo exists, upload to R2
     if (photoBase64) {
-      // photoBase64 might have prefix like data:image/jpeg;base64,...
-      const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
-      const buffer = Buffer.from(base64Data, 'base64');
-      const filename = `${crypto.randomUUID()}.jpg`;
+      const r2Configured = process.env.R2_ACCOUNT_ID && process.env.R2_ACCOUNT_ID !== 'dummy'
+        && process.env.R2_BUCKET && process.env.R2_BUCKET !== 'dummy'
+        && process.env.R2_PUBLIC_DOMAIN && process.env.R2_PUBLIC_DOMAIN !== 'dummy';
 
-      try {
-        await s3Client.send(new PutObjectCommand({
-          Bucket: process.env.R2_BUCKET,
-          Key: filename,
-          Body: buffer,
-          ContentType: 'image/jpeg'
-        }));
-        // Assuming public R2 URL format
-        uploadedPhotoUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${filename}`;
-      } catch (err) {
-        console.error("R2 Upload Error:", err);
+      if (!r2Configured) {
+        photoError = 'Хранилище фото (R2) не настроено. Обратитесь к администратору.';
+      } else {
+        const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        const filename = `${crypto.randomUUID()}.jpg`;
+
+        try {
+          await s3Client.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET,
+            Key: filename,
+            Body: buffer,
+            ContentType: 'image/jpeg'
+          }));
+          uploadedPhotoUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${filename}`;
+        } catch (err) {
+          console.error("R2 Upload Error:", err);
+          photoError = 'Не удалось загрузить фото в хранилище. Инструкция сохранена без фото.';
+        }
       }
     }
 
@@ -151,11 +159,15 @@ Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`j
 
       const results = similar;
       if (results.length > 0 && results[0].distance < 0.15) {
-        return NextResponse.json({
+        const conflictResponse: Record<string, unknown> = {
           conflict: true,
           matches: results.filter(r => r.distance < 0.15),
-          structuredData: parsed // So frontend can preserve it
-        });
+          structuredData: parsed
+        };
+        if (photoError) {
+          conflictResponse.photoError = photoError;
+        }
+        return NextResponse.json(conflictResponse);
       }
     }
 
@@ -177,7 +189,11 @@ Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`j
       RETURNING id, title, tag, summary
     `;
 
-    return NextResponse.json({ success: true, data: newInstruction });
+    const response: Record<string, unknown> = { success: true, data: newInstruction };
+    if (photoError) {
+      response.photoError = photoError;
+    }
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Upload Error:', error);

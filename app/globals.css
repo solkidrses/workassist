@@ -71,12 +71,12 @@ a, button {
 }
 
 .zinc-card.card-enter {
-  animation: card-enter 0.4s var(--ease-out) both;
+  animation: card-enter 0.28s var(--ease-out) both;
   will-change: transform, opacity;
 }
 
 .zinc-card.card-exit {
-  animation: card-exit 0.28s var(--ease-out) both;
+  animation: card-exit 0.2s var(--ease-out) both;
 }
 
 .zinc-tag {
@@ -413,6 +413,7 @@ a, button {
 
 /* ─── Tag Chip ─── */
 .tag-chip {
+  display: inline-block;
   background-color: var(--bg-user-message);
   color: var(--text-muted);
   border: 1px solid var(--border-subtle);
@@ -423,9 +424,9 @@ a, button {
   white-space: nowrap;
   cursor: pointer;
   text-transform: uppercase;
-  transition: all 0.35s var(--ease-spring);
-  position: relative;
-  overflow: hidden;
+  transition: all 0.25s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .tag-chip:hover {
@@ -506,7 +507,7 @@ a, button {
 
 /* ─── Page Transition ─── */
 .page-transition {
-  animation: page-enter 0.4s var(--ease-out);
+  animation: page-enter 0.25s ease both;
 }
 
 @media (prefers-reduced-motion: reduce) {

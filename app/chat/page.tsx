@@ -3,6 +3,7 @@
 import { Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
+import MarkdownText from '@/components/MarkdownText';
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
@@ -129,7 +130,7 @@ export default function ChatPage() {
                 <div className="message-meta">Вы</div>
               )}
               <div className="message-text">
-                {m.content}
+                {m.role === 'assistant' ? <MarkdownText content={m.content} /> : m.content}
               </div>
             </div>
           </div>

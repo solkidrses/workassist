@@ -16,6 +16,7 @@ type RetrievedInstruction = {
   tag: string;
   createdAt: string;
   distance?: number;
+  photoUrl?: string | null;
 };
 
 const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
 
         // Semantic search for RAG context
         const similar = await prisma.$queryRaw<RetrievedInstruction[]>`
-          SELECT id, title, summary, "fullText", tag, "createdAt", 
+          SELECT id, title, summary, "fullText", tag, "createdAt", "photoUrl",
           (embedding <=> ${embeddingStr}::vector) as distance
           FROM instructions
           ORDER BY distance ASC
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
         if (query.length > 2) {
           const ILIKE = `%${query}%`;
           const rawResults = await prisma.$queryRaw<RetrievedInstruction[]>`
-            SELECT id, title, summary, "fullText", tag, "createdAt"
+            SELECT id, title, summary, "fullText", tag, "createdAt", "photoUrl"
             FROM instructions
             WHERE title ILIKE ${ILIKE} OR summary ILIKE ${ILIKE} OR "fullText" ILIKE ${ILIKE}
             LIMIT 5
@@ -92,7 +93,13 @@ export async function POST(req: Request) {
     let contextStr = '';
     
     if (results.length > 0) {
-      contextStr = results.map(r => `[Title: ${r.title}, Tag: ${r.tag}]\n${r.fullText}`).join('\n\n---\n\n');
+      contextStr = results.map(r => {
+        let entry = `[Title: ${r.title}, Tag: ${r.tag}]\n${r.fullText}`;
+        if (r.photoUrl) {
+          entry += `\n[Photo: ${r.photoUrl}]`;
+        }
+        return entry;
+      }).join('\n\n---\n\n');
     }
 
     const instructions = `Ты — строгий консультант по личной базе рабочих инструкций пользователя.
@@ -112,7 +119,8 @@ export async function POST(req: Request) {
 - Если инструкции противоречат друг другу — сразу укажи конфликт и приведи обе версии.
 - Отвечай на русском языке, структурированно, используй Markdown (списки, код-блоки для команд).
 - Цитируй команды и конфигурации из инструкций точно, без изменений.
-- Будь кратким: только суть из инструкции, без воды и общих рассуждений.`;
+- Будь кратким: только суть из инструкции, без воды и общих рассуждений.
+- ФОТО: если у использованной инструкции есть поле [Photo: URL], обязательно вставь изображение в ответ в формате Markdown: ![Скриншот](URL). Размести фото после текстового ответа.`;
 
     const contextSection = results.length > 0 ? `Context instructions:\n\n${contextStr}\n\n---\n\n` : '';
     const input = `${contextSection}User question: ${lastMessage.content}`;

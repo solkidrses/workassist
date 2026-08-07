@@ -78,16 +78,17 @@ export default function UploadPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        if (data.conflict) {
-          setConflict(data as ConflictState);
-        } else {
-          setRequestError(data.error || 'Ошибка при загрузке');
-        }
+      if (data.conflict) {
+        setConflict(data as ConflictState);
+      } else if (!res.ok) {
+        setRequestError(data.error || 'Ошибка при загрузке');
       } else {
         setResult(data.data[0] as UploadResult);
         setText('');
         setPhotoBase64('');
+      }
+      if (data.photoError) {
+        setRequestError(data.photoError);
       }
     } catch (e) {
       console.error(e);

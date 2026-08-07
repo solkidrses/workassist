@@ -277,7 +277,7 @@ export default function LibraryPage() {
               >
                 <div
                   className="zinc-card card-enter"
-                  style={{ animationDelay: `${0.05 + i * 0.06}s` }}
+                  style={{ animationDelay: `${0.02 + i * 0.04}s` }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{inst.title}</h3>
