@@ -139,7 +139,7 @@ export default function ChatPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
             <div className="zinc-card message-bubble assistant" style={{ padding: '12px 16px' }}>
               <div className="message-meta">ИИ-Ассистент</div>
-              <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>печатает...</div>
+              <div className="typing-dots"><span></span><span></span><span></span></div>
             </div>
           </div>
         )}
