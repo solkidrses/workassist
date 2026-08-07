@@ -126,9 +126,9 @@ export default function ChatPage() {
             <div className={`${m.role === 'user' ? 'zinc-user-message' : 'zinc-card'} message-bubble ${m.role === 'user' ? 'user' : 'assistant'}`} style={{ 
               borderLeft: m.role === 'user' ? 'none' : '3px solid var(--accent)',
             }}>
-              <div className="message-meta">
-                {m.role === 'user' ? 'Вы' : 'ИИ-Ассистент'}
-              </div>
+              {m.role === 'user' && (
+                <div className="message-meta">Вы</div>
+              )}
               <div className="message-text">
                 {m.content}
               </div>
@@ -138,7 +138,6 @@ export default function ChatPage() {
         {isLoading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
             <div className="zinc-card message-bubble assistant" style={{ padding: '12px 16px' }}>
-              <div className="message-meta">ИИ-Ассистент</div>
               <div className="typing-dots"><span></span><span></span><span></span></div>
             </div>
           </div>
