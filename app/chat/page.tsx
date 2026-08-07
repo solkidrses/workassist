@@ -1,7 +1,6 @@
 'use client'
 
-import Link from 'next/link';
-import { Book, MessageSquare, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
@@ -160,17 +159,6 @@ export default function ChatPage() {
             <Send size={20} />
           </button>
         </form>
-      </div>
-
-      <div className="panel-fixed bottom-nav">
-        <Link href="/" className="bottom-nav-link">
-          <Book size={24} />
-          <span style={{ fontSize: 10, marginTop: 4 }}>База</span>
-        </Link>
-        <Link href="/chat" className="bottom-nav-link active">
-          <MessageSquare size={24} />
-          <span style={{ fontSize: 10, marginTop: 4, fontWeight: 500 }}>Чат</span>
-        </Link>
       </div>
     </div>
   );

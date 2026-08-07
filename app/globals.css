@@ -32,6 +32,17 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a, button, input, textarea {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+a, button {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 *, *::before, *::after {
@@ -60,7 +71,8 @@ body {
 }
 
 .zinc-card.card-enter {
-  animation: card-enter 0.5s var(--ease-out) both;
+  animation: card-enter 0.4s var(--ease-out) both;
+  will-change: transform, opacity;
 }
 
 .zinc-card.card-exit {
@@ -297,21 +309,18 @@ body {
 @keyframes card-enter {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.97);
-    filter: blur(4px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
+    transform: translateY(0);
   }
 }
 
 @keyframes card-exit {
   to {
     opacity: 0;
-    transform: translateY(-12px) scale(0.95);
-    filter: blur(3px);
+    transform: translateY(-10px);
   }
 }
 

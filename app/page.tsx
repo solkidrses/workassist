@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Plus, MessageSquare, Book } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
@@ -13,6 +13,25 @@ type Instruction = {
   createdAt: string;
   similarity?: number;
 }
+
+const CACHE_KEY = 'instructions_cache';
+
+const readCache = (tag: string): Instruction[] | null => {
+  try {
+    const raw = sessionStorage.getItem(`${CACHE_KEY}_${tag}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeCache = (tag: string, data: Instruction[]) => {
+  try {
+    sessionStorage.setItem(`${CACHE_KEY}_${tag}`, JSON.stringify(data));
+  } catch {
+    // ignore quota errors
+  }
+};
 
 export default function LibraryPage() {
   const [instructions, setInstructions] = useState<Instruction[]>([]);
@@ -33,7 +52,15 @@ export default function LibraryPage() {
       return;
     }
 
-    setLoading(true);
+    // Instant display from cache, then refresh in background
+    const cached = readCache(selectedTag);
+    if (cached && cached.length > 0) {
+      setInstructions(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     setRequestError(null);
     try {
       const url = selectedTag === 'all' 
@@ -47,12 +74,15 @@ export default function LibraryPage() {
       const data = await res.json();
       if (data.success) {
         setInstructions(data.data);
+        writeCache(selectedTag, data.data);
       } else {
         setRequestError(data.error || 'Не удалось загрузить базу.');
       }
     } catch (e) {
       console.error(e);
-      setRequestError('Ошибка сети при загрузке базы.');
+      if (!cached || cached.length === 0) {
+        setRequestError('Ошибка сети при загрузке базы.');
+      }
     }
     setLoading(false);
   }, [authHeaders, isTelegramReady, selectedTag]);
@@ -289,18 +319,6 @@ export default function LibraryPage() {
       }}>
         <Plus size={24} />
       </Link>
-
-      {/* Bottom Navigation */}
-      <div className="panel-fixed bottom-nav">
-        <Link href="/" className="bottom-nav-link active">
-          <Book size={24} />
-          <span style={{ fontSize: 10, marginTop: 4, fontWeight: 500 }}>База</span>
-        </Link>
-        <Link href="/chat" className="bottom-nav-link">
-          <MessageSquare size={24} />
-          <span style={{ fontSize: 10, marginTop: 4 }}>Чат</span>
-        </Link>
-      </div>
     </div>
   );
 }
