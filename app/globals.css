@@ -382,6 +382,49 @@ a, button {
   }
 }
 
+@keyframes detail-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes edit-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.detail-enter {
+  animation: detail-fade-in 0.28s var(--ease-out) both;
+  will-change: transform, opacity;
+}
+
+.edit-enter {
+  animation: edit-slide-in 0.25s var(--ease-out) both;
+  will-change: transform, opacity;
+}
+
+.fade-out {
+  animation: fade-out 0.2s var(--ease-out) both;
+}
+
 /* ─── Skeleton Loading ─── */
 .skeleton-card {
   background-color: var(--bg-card);

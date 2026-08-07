@@ -29,6 +29,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [fadingOut, setFadingOut] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
 
   const [editTitle, setEditTitle] = useState('');
@@ -120,7 +121,8 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       });
       const data = await res.json();
       if (data.success) {
-        router.push('/');
+        setFadingOut(true);
+        setTimeout(() => router.push('/'), 200);
       } else {
         setRequestError(data.error || 'Ошибка при удалении');
         setDeleting(false);
@@ -148,7 +150,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
     }
 
     return (
-      <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>
+      <div className="detail-enter" style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>
         Загрузка инструкции...
       </div>
     );
@@ -174,7 +176,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   }
 
   return (
-    <div className="page-shell" style={{ paddingBottom: 40 }}>
+    <div className={`page-shell${fadingOut ? ' fade-out' : ''}`} style={{ paddingBottom: 40 }}>
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.push('/')} style={{ color: 'var(--text-main)', display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}><ArrowLeft size={24} /></button>
@@ -223,7 +225,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
 
       <div className="page-content">
         {isEditing ? (
-          <div className="zinc-card" style={{ borderLeft: 'none' }}>
+          <div className="zinc-card edit-enter" style={{ borderLeft: 'none' }}>
             <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-muted)' }}>Заголовок</label>
             <input 
               type="text" 
@@ -287,7 +289,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
         ) : (
-          <div>
+          <div className="detail-enter">
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
               <span className="zinc-tag">{instruction.tag}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -297,7 +299,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             </div>
 
             {instruction.summary && (
-              <div className="zinc-card" style={{ marginBottom: 16 }}>
+              <div className="zinc-card detail-enter" style={{ marginBottom: 16, animationDelay: '0.04s' }}>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   Краткая суть
                 </div>
@@ -308,13 +310,13 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             )}
 
             {instruction.photoUrl && (
-              <div style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid #27272a' }}>
+              <div className="detail-enter" style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid #27272a', animationDelay: '0.08s' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={instruction.photoUrl} alt="Attached photo" style={{ width: '100%', maxHeight: 300, objectFit: 'cover' }} />
               </div>
             )}
 
-            <div className="zinc-card" style={{ borderLeft: 'none' }}>
+            <div className="zinc-card detail-enter" style={{ borderLeft: 'none', animationDelay: '0.12s' }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Полная инструкция
               </div>
