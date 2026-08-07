@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 type ChatMessage = {
   role: 'user' | 'assistant' | 'system';
@@ -137,12 +138,25 @@ export async function POST(req: Request) {
     const textStream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const encoder = new TextEncoder();
+        let fullResponse = '';
         for await (const event of stream) {
           if ((event as { type: string }).type === 'response.output_text.delta') {
-            controller.enqueue(encoder.encode((event as { delta: string }).delta));
+            const delta = (event as { delta: string }).delta;
+            fullResponse += delta;
+            controller.enqueue(encoder.encode(delta));
           }
         }
         controller.close();
+
+        // Save to DB after stream completes
+        try {
+          const userMsgId = crypto.randomUUID();
+          const assistantMsgId = crypto.randomUUID();
+          await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "createdAt") VALUES (${userMsgId}, 'user', ${lastMessage.content}, NOW())`;
+          await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "createdAt") VALUES (${assistantMsgId}, 'assistant', ${fullResponse}, NOW())`;
+        } catch (dbErr) {
+          console.error('Failed to save chat history:', dbErr);
+        }
       },
     });
 

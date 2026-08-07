@@ -25,3 +25,12 @@ model Instruction {
 
   @@map("instructions")
 }
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  role      String   // user | assistant
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("chat_messages")
+}

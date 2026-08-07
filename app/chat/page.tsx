@@ -1,6 +1,6 @@
 'use client'
 
-import { Send } from 'lucide-react';
+import { Send, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 import MarkdownText from '@/components/MarkdownText';
@@ -23,13 +23,78 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const HISTORY_CACHE_KEY = 'chat_history_cache';
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load chat history on mount
+  useEffect(() => {
+    if (!isTelegramReady) return;
+
+    // Try cache first for instant display
+    try {
+      const cached = sessionStorage.getItem(HISTORY_CACHE_KEY);
+      if (cached) {
+        const cachedMessages: Message[] = JSON.parse(cached);
+        if (cachedMessages.length > 0) {
+          setMessages(cachedMessages);
+          setHistoryLoaded(true);
+        }
+      }
+    } catch {}
+
+    // Fetch fresh from server
+    (async () => {
+      try {
+        const res = await fetch('/api/chat/history', {
+          headers: authHeaders,
+          cache: 'no-store',
+        });
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          const historyMessages: Message[] = data.data.map((m: { id: string; role: string; content: string }) => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          }));
+          setMessages(historyMessages);
+          sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(historyMessages));
+        } else {
+          setMessages([]);
+          sessionStorage.removeItem(HISTORY_CACHE_KEY);
+        }
+      } catch (e) {
+        console.error('Failed to load chat history:', e);
+      } finally {
+        setHistoryLoaded(true);
+      }
+    })();
+  }, [authHeaders, isTelegramReady]);
+
+  const handleClearHistory = async () => {
+    if (!confirm('Очистить всю историю чата?')) return;
+    setClearing(true);
+    try {
+      await fetch('/api/chat/history', {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      setMessages([]);
+      sessionStorage.removeItem(HISTORY_CACHE_KEY);
+    } catch (e) {
+      console.error('Failed to clear history:', e);
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +142,13 @@ export default function ChatPage() {
           setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: assistantContent } : m));
         }
       }
+
+      // Update cache with final messages
+      setMessages(prev => {
+        const updated = [...prev];
+        sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(updated));
+        return updated;
+      });
     } catch (e) {
       console.error(e);
       const errorId = (Date.now() + 2).toString();
@@ -90,6 +162,15 @@ export default function ChatPage() {
     <div className="page-shell" style={{ paddingBottom: 130 }}>
       <div className="header">
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Чат</h1>
+        {messages.length > 0 && (
+          <button
+            onClick={handleClearHistory}
+            disabled={clearing}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
       </div>
 
       {!isTelegramReady && !authError && (
@@ -114,7 +195,7 @@ export default function ChatPage() {
       <div className="message-stack">
         {messages.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>
-            {isTelegramReady ? 'Задайте вопрос по вашей базе инструкций.' : 'Подготавливаю защищённую сессию для чата.'}
+            {!historyLoaded && isTelegramReady ? 'Загрузка истории...' : isTelegramReady ? 'Задайте вопрос по вашей базе инструкций.' : 'Подготавливаю защищённую сессию для чата.'}
           </div>
         )}
         
