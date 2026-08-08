@@ -37,12 +37,13 @@ export default function ChatPage() {
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const loadedRef = useRef(false);
 
   const HISTORY_CACHE_KEY = 'chat_history_cache';
   const SESSIONS_CACHE_KEY = 'chat_sessions_cache';
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages]);
 
   const loadSessionMessages = async (sessionId: string) => {
@@ -74,9 +75,12 @@ export default function ChatPage() {
 
   // Load sessions and latest session messages on mount
   useEffect(() => {
-    if (!isTelegramReady) return;
+    if (loadedRef.current || !isTelegramReady) return;
+    if (!authHeaders || Object.keys(authHeaders).length === 0) return;
+    loadedRef.current = true;
 
     // Try cache first for instant display
+    let cachedSessionId: string | null = null;
     try {
       const cached = sessionStorage.getItem(HISTORY_CACHE_KEY);
       if (cached) {
@@ -84,6 +88,7 @@ export default function ChatPage() {
         if (cache.messages.length > 0) {
           setMessages(cache.messages);
           setCurrentSessionId(cache.sessionId);
+          cachedSessionId = cache.sessionId;
           setHistoryLoaded(true);
         }
       }
@@ -101,11 +106,14 @@ export default function ChatPage() {
           setSessions(sessionsData.data);
           sessionStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(sessionsData.data));
 
-          // If no cached session, load latest
           if (sessionsData.data.length > 0) {
+            // Prefer the cached session; otherwise load latest
             const latest = sessionsData.data[0].id;
-            setCurrentSessionId(latest);
-            await loadSessionMessages(latest);
+            const targetSessionId = cachedSessionId && sessionsData.data.find((s: ChatSession) => s.id === cachedSessionId)
+              ? cachedSessionId
+              : latest;
+            setCurrentSessionId(targetSessionId);
+            await loadSessionMessages(targetSessionId);
           } else {
             setHistoryLoaded(true);
           }
@@ -117,11 +125,12 @@ export default function ChatPage() {
         setHistoryLoaded(true);
       }
     })();
-  }, [authHeaders, isTelegramReady]);
+  }, [isTelegramReady, JSON.stringify(authHeaders)]);
 
   const handleNewChat = () => {
     setCurrentSessionId(null);
     setMessages([]);
+    setSessionsOpen(false);
     sessionStorage.removeItem(HISTORY_CACHE_KEY);
   };
 
@@ -139,14 +148,16 @@ export default function ChatPage() {
         method: 'DELETE',
         headers: authHeaders,
       });
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      setSessions(prev => {
+        const updated = prev.filter(s => s.id !== sessionId);
+        sessionStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(updated));
+        return updated;
+      });
       if (currentSessionId === sessionId) {
         setCurrentSessionId(null);
         setMessages([]);
         sessionStorage.removeItem(HISTORY_CACHE_KEY);
       }
-      const updated = sessions.filter(s => s.id !== sessionId);
-      sessionStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to delete session:', e);
     }
@@ -222,30 +233,23 @@ export default function ChatPage() {
       // Read session id from response header
       const newSessionId = response.headers.get('X-Session-Id') || currentSessionId;
       if (newSessionId && newSessionId !== currentSessionId) {
+        const title = userMessage.content.split(' ').slice(0, 5).join(' ').substring(0, 60) || 'Новый чат';
+        const newSession: ChatSession = { id: newSessionId, title, createdAt: new Date().toISOString() };
+        setSessions(prev => {
+          const updated = prev.find(s => s.id === newSessionId)
+            ? prev
+            : [newSession, ...prev];
+          sessionStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(updated));
+          return updated;
+        });
         setCurrentSessionId(newSessionId);
       }
 
-      // Refresh sessions list
-      try {
-        const sessionsRes = await fetch('/api/chat/sessions', {
-          headers: authHeaders,
-          cache: 'no-store',
-        });
-        const sessionsData = await sessionsRes.json();
-        if (sessionsData.success) {
-          setSessions(sessionsData.data);
-          sessionStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(sessionsData.data));
-        }
-      } catch {}
-
       // Update cache with final messages
-      setMessages(prev => {
-        const updated = [...prev];
-        if (newSessionId) {
-          sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify({ sessionId: newSessionId, messages: updated }));
-        }
-        return updated;
-      });
+      const finalMessages: Message[] = [...messages, userMessage, { id: assistantId, role: 'assistant', content: assistantContent }];
+      if (newSessionId) {
+        sessionStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify({ sessionId: newSessionId, messages: finalMessages }));
+      }
     } catch (e) {
       console.error(e);
       const errorId = (Date.now() + 2).toString();
@@ -313,7 +317,7 @@ export default function ChatPage() {
           </div>
         )}
         
-        {messages.map(m => (
+        {messages.map((m, idx) => (
           <div key={m.id} style={{
             display: 'flex',
             justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start'
@@ -324,8 +328,16 @@ export default function ChatPage() {
               {m.role === 'user' && (
                 <div className="message-meta">Вы</div>
               )}
-              <div className="message-text">
-                {m.role === 'assistant' ? <MarkdownText content={m.content} /> : m.content}
+              <div className="message-text" style={{ whiteSpace: 'pre-wrap' }}>
+                {m.role === 'assistant' ? (
+                  isLoading && idx === messages.length - 1 ? (
+                    m.content
+                  ) : (
+                    <MarkdownText content={m.content} />
+                  )
+                ) : (
+                  m.content
+                )}
               </div>
             </div>
           </div>
@@ -365,14 +377,14 @@ export default function ChatPage() {
       )}
 
       {sessionsOpen && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg-elevated)', borderTop: '1px solid var(--border-subtle)', borderRadius: '16px 16px 0 0', zIndex: 95, maxHeight: '70vh', display: 'flex', flexDirection: 'column', animation: 'edit-slide-in 0.25s var(--ease-out) both' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '80vh', maxHeight: '90vh', minHeight: 320, background: 'var(--bg-elevated)', borderTop: '1px solid var(--border-subtle)', borderRadius: '16px 16px 0 0', zIndex: 95, display: 'flex', flexDirection: 'column', animation: 'edit-slide-in 0.25s var(--ease-out) both' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>История чатов</h2>
             <button onClick={() => setSessionsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
               <X size={22} />
             </button>
           </div>
-          <div style={{ overflowY: 'auto', padding: '8px 16px 16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px max(16px, env(safe-area-inset-bottom, 16px))' }}>
             {sessions.length === 0 ? (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>
                 Нет сохранённых чатов
