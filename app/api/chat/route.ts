@@ -54,6 +54,18 @@ export async function POST(req: Request) {
       activeSessionId = newId;
     }
 
+    // Load conversation history from DB (last 10 messages, excluding current)
+    const historyRows = await prisma.$queryRaw<{ role: string; content: string }[]>`
+      SELECT role, content FROM chat_messages
+      WHERE "sessionId" = ${activeSessionId}
+      ORDER BY "createdAt" DESC
+      LIMIT 10
+    `;
+    const conversationHistory = historyRows.reverse().map(r => ({
+      role: r.role as 'user' | 'assistant',
+      content: r.content,
+    }));
+
     let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
     let results: RetrievedInstruction[] = [];
 
@@ -140,14 +152,18 @@ export async function POST(req: Request) {
 - ФОТО: если у использованной инструкции есть поле [Photo: URL], обязательно вставь изображение в ответ в формате Markdown: ![Скриншот](URL). Размести фото после текстового ответа.`;
 
     const contextSection = results.length > 0 ? `Context instructions:\n\n${contextStr}\n\n---\n\n` : '';
-    const input = `${contextSection}User question: ${lastMessage.content}`;
 
     const deepseekClient = new OpenAI({ apiKey: DEEPSEEK_API_KEY, baseURL: DEEPSEEK_BASE_URL });
 
-    const stream = await deepseekClient.responses.create({
+    const deepseekMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+      { role: 'system', content: `${instructions}\n\n${contextSection}` },
+      ...conversationHistory,
+      { role: 'user', content: lastMessage.content },
+    ];
+
+    const stream = await deepseekClient.chat.completions.create({
       model: 'deepseek-v4-flash',
-      instructions,
-      input,
+      messages: deepseekMessages,
       stream: true,
     });
 
@@ -155,9 +171,9 @@ export async function POST(req: Request) {
       async start(controller) {
         const encoder = new TextEncoder();
         let fullResponse = '';
-        for await (const event of stream) {
-          if ((event as { type: string }).type === 'response.output_text.delta') {
-            const delta = (event as { delta: string }).delta;
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content;
+          if (delta) {
             fullResponse += delta;
             controller.enqueue(encoder.encode(delta));
           }
