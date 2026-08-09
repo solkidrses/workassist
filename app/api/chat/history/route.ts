@@ -49,13 +49,12 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get('sessionId');
 
-    if (sessionId) {
-      await prisma.$executeRaw`DELETE FROM chat_messages WHERE "sessionId" = ${sessionId}`;
-      await prisma.$executeRaw`DELETE FROM chat_sessions WHERE id = ${sessionId}`;
-    } else {
-      await prisma.$executeRaw`DELETE FROM chat_messages`;
-      await prisma.$executeRaw`DELETE FROM chat_sessions`;
+    if (!sessionId) {
+      return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
     }
+
+    await prisma.$executeRaw`DELETE FROM chat_messages WHERE "sessionId" = ${sessionId}`;
+    await prisma.$executeRaw`DELETE FROM chat_sessions WHERE id = ${sessionId}`;
 
     return NextResponse.json({ success: true });
   } catch (error) {
