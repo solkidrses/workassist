@@ -11,6 +11,7 @@ type CategoryRow = {
   color: string | null;
   parentId: string | null;
   sortOrder: number;
+  instructionCount: number;
 };
 
 function slugify(name: string): string {
@@ -30,9 +31,10 @@ export async function GET(req: Request) {
     }
 
     const rows = await prisma.$queryRaw<CategoryRow[]>`
-      SELECT id, name, slug, icon, color, "parentId", "sortOrder"
-      FROM categories
-      ORDER BY "sortOrder" ASC, name ASC
+      SELECT c.id, c.name, c.slug, c.icon, c.color, c."parentId", c."sortOrder",
+        (SELECT COUNT(*) FROM instructions WHERE tag = c.slug)::int as "instructionCount"
+      FROM categories c
+      ORDER BY c."sortOrder" ASC, c.name ASC
     `;
 
     return NextResponse.json({ success: true, data: rows });

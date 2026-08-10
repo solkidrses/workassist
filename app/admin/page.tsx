@@ -12,6 +12,7 @@ type Category = {
   color: string | null;
   parentId: string | null;
   sortOrder: number;
+  instructionCount: number;
 };
 
 export default function AdminPage() {
@@ -179,7 +180,7 @@ export default function AdminPage() {
       <div className="page-content">
         {/* Categories Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{categories.length} категорий</span>
+          <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{categories.length} категории</span>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="tag-chip active"
@@ -302,7 +303,9 @@ export default function AdminPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 600 }}>{cat.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>/{cat.slug}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        {cat.instructionCount} {cat.instructionCount === 1 ? 'инструкция' : cat.instructionCount >= 2 && cat.instructionCount <= 4 ? 'инструкции' : 'инструкций'}
+                      </div>
                     </div>
                     <button
                       onClick={() => startEdit(cat)}
