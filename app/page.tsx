@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Plus, Settings } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
@@ -315,33 +315,14 @@ export default function LibraryPage() {
         )}
       </div>
 
-      {/* Admin Button */}
-      <Link href="/admin" style={{
-        position: 'fixed',
-        bottom: 80,
-        left: 20,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'var(--bg-elevated)',
-        border: '1px solid var(--border-subtle)',
-        color: 'var(--text-muted)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 20
-      }}>
-        <Settings size={20} />
-      </Link>
-
       {/* Floating Action Button */}
       <Link href="/upload" style={{
         position: 'fixed',
-        bottom: 80,
+        bottom: 72,
         right: 20,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         backgroundColor: 'var(--accent)',
         color: '#000',
         display: 'flex',
@@ -350,7 +331,7 @@ export default function LibraryPage() {
         boxShadow: '0 4px 12px rgba(255, 124, 59, 0.4)',
         zIndex: 20
       }}>
-        <Plus size={24} />
+        <Plus size={22} />
       </Link>
     </div>
   );

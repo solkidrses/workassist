@@ -185,7 +185,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   }
 
   return (
-    <div className={`page-shell${fadingOut ? ' fade-out' : ''}`} style={{ paddingBottom: 40 }}>
+    <div className={`page-shell${fadingOut ? ' fade-out' : ''}`} style={{ paddingBottom: 80 }}>
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.push('/')} style={{ color: 'var(--text-main)', display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}><ArrowLeft size={24} /></button>

@@ -98,7 +98,7 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="page-shell" style={{ paddingBottom: 40 }}>
+    <div className="page-shell" style={{ paddingBottom: 80 }}>
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link href="/" style={{ color: 'var(--text-main)' }}><ArrowLeft size={24} /></Link>

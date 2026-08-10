@@ -2,24 +2,28 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Book, MessageSquare } from 'lucide-react';
+import { Settings, Book, MessageSquare } from 'lucide-react';
 
 export default function BottomNav() {
   const pathname = usePathname();
 
-  const showNav = pathname === '/' || pathname === '/chat';
-  if (!showNav) return null;
+  const items = [
+    { href: '/admin', label: 'Админка', icon: Settings, match: (p: string) => p.startsWith('/admin') },
+    { href: '/', label: 'База', icon: Book, match: (p: string) => p === '/' || p.startsWith('/instruction') || p.startsWith('/upload') },
+    { href: '/chat', label: 'Чат', icon: MessageSquare, match: (p: string) => p.startsWith('/chat') },
+  ];
 
   return (
     <div className="panel-fixed bottom-nav">
-      <Link href="/" className={`bottom-nav-link ${pathname === '/' ? 'active' : ''}`}>
-        <Book size={24} />
-        <span style={{ fontSize: 10, marginTop: 4, fontWeight: pathname === '/' ? 500 : 400 }}>База</span>
-      </Link>
-      <Link href="/chat" className={`bottom-nav-link ${pathname === '/chat' ? 'active' : ''}`}>
-        <MessageSquare size={24} />
-        <span style={{ fontSize: 10, marginTop: 4, fontWeight: pathname === '/chat' ? 500 : 400 }}>Чат</span>
-      </Link>
+      {items.map(({ href, label, icon: Icon, match }) => {
+        const isActive = match(pathname);
+        return (
+          <Link key={href} href={href} className={`bottom-nav-link ${isActive ? 'active' : ''}`}>
+            <Icon size={22} />
+            <span style={{ fontSize: 10, marginTop: 4, fontWeight: isActive ? 500 : 400 }}>{label}</span>
+          </Link>
+        );
+      })}
     </div>
   );
 }

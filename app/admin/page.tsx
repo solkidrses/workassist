@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Plus, Trash2, Edit2, Save, X, Folder } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Plus, Trash2, Edit2, Save, X, Folder } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
 type Category = {
@@ -16,7 +15,6 @@ type Category = {
 };
 
 export default function AdminPage() {
-  const router = useRouter();
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,13 +163,7 @@ export default function AdminPage() {
 
   return (
     <div className="page-shell" style={{ paddingBottom: 80 }}>
-      <div className="header" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button
-          onClick={() => router.push('/')}
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
-        >
-          <ArrowLeft size={22} />
-        </button>
+      <div className="header">
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Админка · Категории</h1>
       </div>
 
