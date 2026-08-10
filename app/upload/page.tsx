@@ -203,10 +203,9 @@ export default function UploadPage() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', border: '1px dashed #27272a', borderRadius: 8, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, flex: 1, justifyContent: 'center', minWidth: 120 }}>
-                  <FileUp size={18} />
-                  <span>.docx / .txt</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 14px', border: '1px dashed #27272a', borderRadius: 8, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13 }}>
+                  <span>Загрузить файл</span>
                   <input type="file" accept=".docx,.txt" onChange={handleDocChange} style={{ display: 'none' }} disabled={!isTelegramReady || !!authError || extracting} />
                 </label>
                 {photoBase64 ? (
@@ -221,8 +220,7 @@ export default function UploadPage() {
                     </button>
                   </div>
                 ) : (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', border: '1px dashed #27272a', borderRadius: 8, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, flex: 1, justifyContent: 'center', minWidth: 120 }}>
-                    <ImageIcon size={18} />
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 14px', border: '1px dashed #27272a', borderRadius: 8, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13 }}>
                     <span>Скриншот</span>
                     <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} disabled={!isTelegramReady || !!authError} />
                   </label>
@@ -265,12 +263,7 @@ export default function UploadPage() {
                 disabled={!canSubmit}
                 style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flex: 1 }}
               >
-                {loading ? 'Обработка...' : (
-                  <>
-                    <Sparkles size={18} />
-                    Сохранить с ИИ
-                  </>
-                )}
+                {loading ? 'Обработка...' : 'Сохранить с ИИ'}
               </button>
               <button
                 onClick={() => handleUpload(false, true)}
@@ -283,12 +276,7 @@ export default function UploadPage() {
                   opacity: canSubmit ? 1 : 0.5,
                 }}
               >
-                {loading ? '...' : (
-                  <>
-                    <Check size={18} />
-                    Сохранить
-                  </>
-                )}
+                {loading ? '...' : 'Сохранить'}
               </button>
             </div>
           </>
