@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import OpenAI from 'openai';
+import { unlink } from 'fs/promises';
+import path from 'path';
 
 type InstructionRow = {
   id: string;
@@ -61,16 +64,34 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const body = await req.json();
     const { title, summary, fullText, tag } = body;
 
+    // Regenerate embedding if text fields changed and API key is available
+    const hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
+    let embeddingClause = '';
+
+    if (hasEmbeddingsKey && (title || summary || fullText)) {
+      try {
+        const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY! });
+        const embeddingInput = `${summary || ''}\n\n${fullText || ''}`;
+        const embeddingResponse = await openai.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: embeddingInput,
+        });
+        const embedding = embeddingResponse.data[0].embedding;
+        const embeddingStr = `[${embedding.join(',')}]`;
+        embeddingClause = `, embedding = '${embeddingStr}'::vector`;
+      } catch (e) {
+        console.error('Embedding update error:', e);
+      }
+    }
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE instructions SET title = $1, summary = $2, "fullText" = $3, tag = $4, "updatedAt" = NOW()${embeddingClause} WHERE id = $5`,
+      title || 'Untitled', summary || '', fullText || '', tag || 'general', id
+    );
+
     const updated = await prisma.$queryRaw<InstructionUpdateRow[]>`
-      UPDATE instructions
-      SET 
-        title = ${title || 'Untitled'},
-        summary = ${summary || ''},
-        "fullText" = ${fullText || ''},
-        tag = ${tag || 'general'},
-        "updatedAt" = NOW()
-      WHERE id = ${id}
-      RETURNING id, title, summary, "fullText", tag, "updatedAt"
+      SELECT id, title, summary, "fullText", tag, "updatedAt"
+      FROM instructions WHERE id = ${id}
     `;
 
     return NextResponse.json({ success: true, data: updated[0] });
@@ -89,10 +110,29 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     const { id } = await params;
 
+    // Get photoUrl before deleting so we can clean up the file
+    const rows = await prisma.$queryRaw<{ photoUrl: string | null }[]>`
+      SELECT "photoUrl" FROM instructions WHERE id = ${id}
+    `;
+    const photoUrl = rows[0]?.photoUrl;
+
     await prisma.$queryRaw`
       DELETE FROM instructions
       WHERE id = ${id}
     `;
+
+    // Delete photo file from disk if it exists
+    if (photoUrl) {
+      const filename = photoUrl.split('/').pop();
+      if (filename) {
+        const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
+        try {
+          await unlink(filePath);
+        } catch {
+          // File may not exist, ignore
+        }
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

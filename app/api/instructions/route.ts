@@ -17,13 +17,13 @@ export async function GET(req: Request) {
           FROM instructions
           WHERE tag = ${tag}
           ORDER BY "createdAt" DESC
-          LIMIT 50
+          LIMIT 200
         `
       : await prisma.$queryRaw`
           SELECT id, title, summary, tag, "createdAt", "sourceType"
           FROM instructions
           ORDER BY "createdAt" DESC
-          LIMIT 50
+          LIMIT 200
         `;
 
     return NextResponse.json({ success: true, data: results });
