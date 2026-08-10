@@ -335,7 +335,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                 Полная инструкция
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-                <MarkdownText content={instruction.fullText} />
+                <MarkdownText content={instruction.fullText} imageSize="full" />
               </div>
             </div>
           </div>

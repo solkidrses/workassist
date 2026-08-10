@@ -23,7 +23,7 @@ function PhotoOverlay({ src, onClose }: { src: string; onClose: () => void }) {
   );
 }
 
-function renderMarkdown(text: string, onPhotoClick: (src: string) => void): React.ReactNode[] {
+function renderMarkdown(text: string, onPhotoClick: (src: string) => void, imageSize: 'thumb' | 'full'): React.ReactNode[] {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let key = 0;
@@ -32,10 +32,16 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void): Reac
     // Image: ![alt](url)
     const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (imgMatch) {
+      const imgStyle: React.CSSProperties = imageSize === 'full'
+        ? { width: '100%', height: 'auto', borderRadius: 10, cursor: 'pointer', display: 'block' }
+        : { width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' };
+      const wrapperStyle = imageSize === 'full'
+        ? { marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden' }
+        : { marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden', width: 120, height: 120 };
       elements.push(
-        <div key={key++} style={{ marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden', width: 120, height: 120 }}>
+        <div key={key++} style={wrapperStyle}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imgMatch[2]} alt={imgMatch[1]} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgMatch[2])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} />
+          <img src={imgMatch[2]} alt={imgMatch[1]} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgMatch[2])} style={imgStyle} />
         </div>
       );
       continue;
@@ -55,9 +61,9 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void): Reac
           parts.push(<React.Fragment key={imgPartKey++}>{line.slice(imgLastIdx, imgMatch.index)}</React.Fragment>);
         }
         parts.push(
-          <span key={imgPartKey++} style={{ display: 'inline-block', verticalAlign: 'middle', margin: '4px 0', borderRadius: 8, overflow: 'hidden', width: 100, height: 100 }}>
+          <span key={imgPartKey++} style={{ display: 'inline-block', verticalAlign: 'middle', margin: '4px 0', borderRadius: 8, overflow: 'hidden', width: imageSize === 'full' ? '100%' : 100, height: imageSize === 'full' ? 'auto' : 100 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imgMatch[2]} alt={imgMatch[1]} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgMatch![2])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} />
+            <img src={imgMatch[2]} alt={imgMatch[1]} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgMatch![2])} style={{ width: '100%', height: imageSize === 'full' ? 'auto' : '100%', objectFit: imageSize === 'full' ? 'contain' : 'cover', cursor: 'pointer' }} />
           </span>
         );
         imgLastIdx = imgMatch.index + imgMatch[0].length;
@@ -130,9 +136,9 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void): Reac
   return elements;
 }
 
-function MarkdownText({ content }: { content: string }) {
+function MarkdownText({ content, imageSize = 'thumb' }: { content: string; imageSize?: 'thumb' | 'full' }) {
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
-  const rendered = useMemo(() => renderMarkdown(content, setPhotoSrc), [content]);
+  const rendered = useMemo(() => renderMarkdown(content, setPhotoSrc, imageSize), [content, imageSize]);
   return (
     <>
       {rendered}

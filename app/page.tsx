@@ -297,7 +297,7 @@ export default function LibraryPage() {
                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{inst.title}</h3>
                     <span className="zinc-tag">{inst.tag}</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {inst.summary || 'Нажмите, чтобы прочитать полностью...'}
                   </p>
                   {inst.similarity !== undefined && (
