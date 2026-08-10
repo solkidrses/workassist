@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, use, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit2, Trash2, Save, Calendar, X } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
@@ -342,17 +343,17 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
         )}
       </div>
 
-      {photoViewer && (
+      {photoViewer && createPortal(
         <div
           onClick={() => setPhotoViewer(null)}
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.9)',
+            background: 'rgba(0, 0, 0, 0.92)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 100,
+            zIndex: 9999,
             animation: 'page-enter 0.2s ease both',
           }}
         >
@@ -363,8 +364,9 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             <X size={22} />
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photoViewer} alt="Full photo" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, objectFit: 'contain' }} />
-        </div>
+          <img src={photoViewer} alt="Full photo" style={{ maxWidth: '95vw', maxHeight: '90vh', borderRadius: 8, objectFit: 'contain' }} />
+        </div>,
+        document.body
       )}
     </div>
   );
