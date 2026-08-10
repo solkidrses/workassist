@@ -73,10 +73,12 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
         if (imgMatch.index > imgLastIdx) {
           parts.push(<React.Fragment key={imgPartKey++}>{line.slice(imgLastIdx, imgMatch.index)}</React.Fragment>);
         }
+        const imgSrc = imgMatch[2];
+        const imgAlt = imgMatch[1];
         parts.push(
           <span key={imgPartKey++} style={{ display: 'inline-block', verticalAlign: 'middle', margin: '4px 0', borderRadius: 8, overflow: 'hidden', width: imageSize === 'full' ? '100%' : 100, height: imageSize === 'full' ? 'auto' : 100 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imgMatch[2]} alt={imgMatch[1]} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgMatch![2])} style={{ width: '100%', height: imageSize === 'full' ? 'auto' : '100%', objectFit: imageSize === 'full' ? 'contain' : 'cover', cursor: 'pointer' }} />
+            <img src={imgSrc} alt={imgAlt} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgSrc)} style={{ width: '100%', height: imageSize === 'full' ? 'auto' : '100%', objectFit: imageSize === 'full' ? 'contain' : 'cover', cursor: 'pointer' }} />
           </span>
         );
         imgLastIdx = imgMatch.index + imgMatch[0].length;
