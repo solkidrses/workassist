@@ -17,7 +17,7 @@ type Instruction = {
   updatedAt: string;
 }
 
-const TAG_OPTIONS = ['general', 'vpn', 'tma', 'cs2', 'clario'];
+const [tagOptions, setTagOptions] = useState<{ id: string; name: string; slug: string }[]>([{ id: 'general', name: 'Общее', slug: 'general' }]);
 
 export default function InstructionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -37,6 +37,14 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [editSummary, setEditSummary] = useState('');
   const [editFullText, setEditFullText] = useState('');
   const [editTag, setEditTag] = useState('general');
+
+  useEffect(() => {
+    if (!isTelegramReady) return;
+    fetch('/api/categories', { headers: authHeaders, cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => { if (data.success && data.data.length > 0) setTagOptions(data.data); })
+      .catch(() => {});
+  }, [isTelegramReady, JSON.stringify(authHeaders)]);
 
   const fetchInstruction = useCallback(async () => {
     if (!isTelegramReady) {
@@ -245,8 +253,8 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
               style={{ marginBottom: 16, backgroundColor: 'var(--bg-user-message)' }}
               disabled={saving || !!authError}
             >
-              {TAG_OPTIONS.map(t => (
-                <option key={t} value={t}>{t.toUpperCase()}</option>
+              {tagOptions.map((t: { id: string; name: string; slug: string }) => (
+                <option key={t.id} value={t.slug}>{t.name}</option>
               ))}
             </select>
 

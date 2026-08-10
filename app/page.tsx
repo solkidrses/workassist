@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
@@ -44,8 +44,15 @@ export default function LibraryPage() {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedTag, setSelectedTag] = useState('all');
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string; icon: string | null }[]>([]);
 
-  const TAGS = ['all', 'vpn', 'tma', 'cs2', 'clario', 'general'];
+  useEffect(() => {
+    if (!isTelegramReady) return;
+    fetch('/api/categories', { headers: authHeaders, cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => { if (data.success) setCategories(data.data); })
+      .catch(() => {});
+  }, [isTelegramReady, JSON.stringify(authHeaders)]);
 
   const fetchInstructions = useCallback(async () => {
     if (!isTelegramReady) {
@@ -225,15 +232,22 @@ export default function LibraryPage() {
 
         {/* Tag Filters */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 20, paddingBottom: 4, scrollbarWidth: 'none' }}>
-          {TAGS.map(tag => {
-            const isActive = selectedTag === tag;
+          <button
+            key="all"
+            className={`tag-chip ${selectedTag === 'all' ? 'active' : ''}`}
+            onClick={() => { setSelectedTag('all'); setQuery(''); setIsSearching(false); }}
+          >
+            Все
+          </button>
+          {categories.map(cat => {
+            const isActive = selectedTag === cat.slug;
             return (
               <button
-                key={tag}
+                key={cat.id}
                 className={`tag-chip ${isActive ? 'active' : ''}`}
-                onClick={() => { setSelectedTag(tag); setQuery(''); setIsSearching(false); }}
+                onClick={() => { setSelectedTag(cat.slug); setQuery(''); setIsSearching(false); }}
               >
-                {tag === 'all' ? 'Все' : tag}
+                {cat.icon ? `${cat.icon} ` : ''}{cat.name}
               </button>
             );
           })}
@@ -300,6 +314,25 @@ export default function LibraryPage() {
           </div>
         )}
       </div>
+
+      {/* Admin Button */}
+      <Link href="/admin" style={{
+        position: 'fixed',
+        bottom: 80,
+        left: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'var(--bg-elevated)',
+        border: '1px solid var(--border-subtle)',
+        color: 'var(--text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 20
+      }}>
+        <Settings size={20} />
+      </Link>
 
       {/* Floating Action Button */}
       <Link href="/upload" style={{

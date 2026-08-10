@@ -68,6 +68,14 @@ export async function POST(req: Request) {
     let parsed: ParsedInstruction = { title: "Untitled", summary: "", tag: "general", fullText: text || "Image uploaded" };
 
     if (text) {
+      // Fetch available categories from DB
+      const categoryRows = await prisma.$queryRaw<{ slug: string }[]>`
+        SELECT slug FROM categories ORDER BY "sortOrder" ASC
+      `;
+      const availableTags = categoryRows.length > 0
+        ? categoryRows.map(r => r.slug).join(', ')
+        : 'vpn, tma, cs2, clario, general';
+
       // Use DeepSeek for structuring text
       const deepseek = new OpenAI({
         apiKey: process.env.DEEPSEEK_API_KEY || 'dummy',
@@ -84,7 +92,7 @@ export async function POST(req: Request) {
 Extract or generate the following fields:
 - title: A short descriptive title
 - summary: A 1-2 sentence summary
-- tag: EXACTLY ONE of [vpn, tma, cs2, clario, general]
+- tag: EXACTLY ONE of [${availableTags}]
 - fullText: The full formatted instruction in Markdown
 
 Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`json around the output.`
