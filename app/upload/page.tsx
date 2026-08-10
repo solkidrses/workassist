@@ -233,7 +233,7 @@ export default function UploadPage() {
                   <input
                     className="input-field"
                     type="text"
-                    placeholder="Авто из текста или файла"
+                    placeholder="Инструкция"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     disabled={!isTelegramReady || !!authError}
