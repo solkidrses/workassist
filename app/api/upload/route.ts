@@ -13,6 +13,9 @@ type UploadRequestBody = {
   photoBase64?: string;
   source?: string;
   forceSave?: boolean;
+  skipAI?: boolean;
+  title?: string;
+  tag?: string;
 };
 
 type ParsedInstruction = {
@@ -39,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json() as UploadRequestBody;
-    const { text, photoBase64, source, forceSave } = body;
+    const { text, photoBase64, source, forceSave, skipAI, title: explicitTitle, tag: explicitTag } = body;
 
     if (!text && !photoBase64) {
       return NextResponse.json({ error: 'Text or photo is required' }, { status: 400 });
@@ -67,7 +70,16 @@ export async function POST(req: Request) {
 
     let parsed: ParsedInstruction = { title: "Untitled", summary: "", tag: "general", fullText: text || "Image uploaded" };
 
-    if (text) {
+    if (skipAI && text) {
+      const { cleanupText, deriveTitle, deriveSummary } = await import('@/lib/textCleanup');
+      const cleaned = cleanupText(text);
+      parsed = {
+        title: explicitTitle?.trim() || deriveTitle(cleaned, 'Untitled'),
+        summary: deriveSummary(cleaned),
+        tag: explicitTag || 'general',
+        fullText: cleaned,
+      };
+    } else if (text) {
       // Fetch available categories from DB
       const categoryRows = await prisma.$queryRaw<{ slug: string }[]>`
         SELECT slug FROM categories ORDER BY "sortOrder" ASC
