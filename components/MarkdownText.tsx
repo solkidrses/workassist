@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 
 function PhotoOverlay({ src, onClose }: { src: string; onClose: () => void }) {
   return (
@@ -35,7 +35,7 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void): Reac
       elements.push(
         <div key={key++} style={{ marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden', width: 120, height: 120 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imgMatch[2]} alt={imgMatch[1]} onClick={() => onPhotoClick(imgMatch[2])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} />
+          <img src={imgMatch[2]} alt={imgMatch[1]} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgMatch[2])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} />
         </div>
       );
       continue;
@@ -57,7 +57,7 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void): Reac
         parts.push(
           <span key={imgPartKey++} style={{ display: 'inline-block', verticalAlign: 'middle', margin: '4px 0', borderRadius: 8, overflow: 'hidden', width: 100, height: 100 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imgMatch[2]} alt={imgMatch[1]} onClick={() => onPhotoClick(imgMatch![2])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} />
+            <img src={imgMatch[2]} alt={imgMatch[1]} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgMatch![2])} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} />
           </span>
         );
         imgLastIdx = imgMatch.index + imgMatch[0].length;
@@ -130,12 +130,15 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void): Reac
   return elements;
 }
 
-export default function MarkdownText({ content }: { content: string }) {
+function MarkdownText({ content }: { content: string }) {
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
+  const rendered = useMemo(() => renderMarkdown(content, setPhotoSrc), [content]);
   return (
     <>
-      {renderMarkdown(content, setPhotoSrc)}
+      {rendered}
       {photoSrc && <PhotoOverlay src={photoSrc} onClose={() => setPhotoSrc(null)} />}
     </>
   );
 }
+
+export default memo(MarkdownText);

@@ -155,8 +155,7 @@ a, button {
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
-  background: rgba(9, 9, 11, 0.92);
-  backdrop-filter: blur(18px);
+  background: rgba(9, 9, 11, 0.98);
   z-index: 10;
 }
 
@@ -175,8 +174,7 @@ a, button {
   position: fixed;
   left: 0;
   right: 0;
-  background: rgba(9, 9, 11, 0.94);
-  backdrop-filter: blur(18px);
+  background: rgba(9, 9, 11, 0.98);
   border-top: 1px solid var(--border-subtle);
   transform: translateZ(0);
   will-change: transform;
@@ -228,6 +226,8 @@ a, button {
   max-width: 85%;
   margin: 0;
   animation: fade-in-up 0.22s ease;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
 }
 
 .message-bubble.assistant {

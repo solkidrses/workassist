@@ -42,8 +42,14 @@ export default function ChatPage() {
   const HISTORY_CACHE_KEY = 'chat_history_cache';
   const SESSIONS_CACHE_KEY = 'chat_sessions_cache';
 
+  const scrollRafRef = useRef<number | null>(null);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      scrollRafRef.current = null;
+    });
+    return () => { if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current); };
   }, [messages]);
 
   const loadSessionMessages = async (sessionId: string) => {
