@@ -17,13 +17,12 @@ type Instruction = {
   updatedAt: string;
 }
 
-const [tagOptions, setTagOptions] = useState<{ id: string; name: string; slug: string }[]>([{ id: 'general', name: 'Общее', slug: 'general' }]);
-
 export default function InstructionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
 
+  const [tagOptions, setTagOptions] = useState<{ id: string; name: string; slug: string }[]>([{ id: 'general', name: 'Общее', slug: 'general' }]);
   const [instruction, setInstruction] = useState<Instruction | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
