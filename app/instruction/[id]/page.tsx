@@ -4,6 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit2, Trash2, Save, Calendar, X } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
+import MarkdownText from '@/components/MarkdownText';
 
 type Instruction = {
   id: string;
@@ -333,8 +334,8 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Полная инструкция
               </div>
-              <div style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                {instruction.fullText}
+              <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+                <MarkdownText content={instruction.fullText} />
               </div>
             </div>
           </div>
