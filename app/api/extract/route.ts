@@ -3,6 +3,9 @@ import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { cleanupText } from '@/lib/textCleanup';
 import mammoth from 'mammoth';
 import TurndownService from 'turndown';
+import crypto from 'crypto';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -10,7 +13,16 @@ const turndown = new TurndownService({
   codeBlockStyle: 'fenced',
 });
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const EXT_BY_MIME: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/bmp': 'bmp',
+};
 
 export async function POST(req: Request) {
   try {
@@ -26,21 +38,42 @@ export async function POST(req: Request) {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'Файл слишком большой (макс. 5 МБ)' }, { status: 400 });
+      return NextResponse.json({ error: 'Файл слишком большой (макс. 10 МБ)' }, { status: 400 });
     }
 
     const filename = file.name.toLowerCase();
     const buffer = Buffer.from(await file.arrayBuffer());
 
     let text = '';
-    let html = '';
+    let imageCount = 0;
 
     if (filename.endsWith('.txt')) {
       text = buffer.toString('utf-8');
     } else if (filename.endsWith('.docx')) {
-      const result = await mammoth.convertToHtml({ buffer });
-      html = result.value;
-      text = turndown.turndown(html);
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      await mkdir(uploadsDir, { recursive: true });
+
+      const result = await mammoth.convertToHtml(
+        { buffer },
+        {
+          convertImage: mammoth.images.imgElement(async (image) => {
+            try {
+              const imgBuffer = await image.read();
+              const ext = EXT_BY_MIME[image.contentType] || 'png';
+              const name = `${crypto.randomUUID()}.${ext}`;
+              await writeFile(path.join(uploadsDir, name), imgBuffer);
+              imageCount++;
+              return { src: `/api/photos/${name}` };
+            } catch (err) {
+              console.error('Failed to save docx image:', err);
+              return { src: '' };
+            }
+          }),
+        }
+      );
+
+      text = turndown.turndown(result.value);
+      text = text.replace(/!\[[^\]]*\]\(\)/g, '');
     } else {
       return NextResponse.json({ error: 'Поддерживаются только .txt и .docx' }, { status: 400 });
     }
@@ -53,6 +86,7 @@ export async function POST(req: Request) {
       text: cleaned,
       filename: file.name,
       suggestedTitle: titleFromFilename,
+      imageCount,
     });
   } catch (error) {
     console.error('Extract error:', error);
