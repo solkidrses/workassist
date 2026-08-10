@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Edit2, Save, X, Folder, RefreshCw, Activity } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Folder } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
 type Category = {
@@ -35,10 +35,6 @@ export default function AdminPage() {
   const [reassignTo, setReassignTo] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  const [health, setHealth] = useState<{ totalInstructions: number; withoutEmbedding: number; embeddingsEnabled: boolean; totalSessions: number; totalMessages: number; totalCategories: number } | null>(null);
-  const [regenerating, setRegenerating] = useState(false);
-  const [regenResult, setRegenResult] = useState<string | null>(null);
-
   const fetchCategories = useCallback(async () => {
     if (!isTelegramReady) return;
     setLoading(true);
@@ -60,10 +56,6 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isTelegramReady) return;
     fetchCategories();
-    fetch('/api/admin/health', { headers: authHeaders, cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => { if (data.success) setHealth(data.data); })
-      .catch(() => {});
   }, [isTelegramReady, JSON.stringify(authHeaders), fetchCategories]);
 
   const handleAdd = async () => {
@@ -142,29 +134,6 @@ export default function AdminPage() {
     setEditColor(cat.color || '');
   };
 
-  const handleRegenerate = async (onlyMissing: boolean) => {
-    setRegenerating(true);
-    setRegenResult(null);
-    setError(null);
-    try {
-      const url = onlyMissing ? '/api/admin/health?onlyMissing=true' : '/api/admin/health';
-      const res = await fetch(url, { method: 'POST', headers: authHeaders });
-      const data = await res.json();
-      if (data.success) {
-        const { total, updated, failed } = data.data;
-        setRegenResult(`Готово: обновлено ${updated} из ${total}${failed > 0 ? `, ошибок: ${failed}` : ''}`);
-        const hres = await fetch('/api/admin/health', { headers: authHeaders, cache: 'no-store' });
-        const hdata = await hres.json();
-        if (hdata.success) setHealth(hdata.data);
-      } else {
-        setError(data.error || 'Ошибка перегенерации');
-      }
-    } catch {
-      setError('Ошибка сети');
-    }
-    setRegenerating(false);
-  };
-
   if (!isTelegramReady && !authError) {
     return (
       <div className="page-shell">
@@ -208,84 +177,6 @@ export default function AdminPage() {
       )}
 
       <div className="page-content">
-        {/* Health Panel */}
-        {health && (
-          <div className="zinc-card" style={{ marginBottom: 20, borderLeftColor: 'var(--success)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <Activity size={18} style={{ color: 'var(--success)' }} />
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Состояние базы</h3>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13 }}>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Инструкций: </span>
-                <span style={{ fontWeight: 600 }}>{health.totalInstructions}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Без эмбеддинга: </span>
-                <span style={{ fontWeight: 600, color: health.withoutEmbedding > 0 ? 'var(--danger)' : 'var(--success)' }}>{health.withoutEmbedding}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Категорий: </span>
-                <span style={{ fontWeight: 600 }}>{health.totalCategories}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Чатов: </span>
-                <span style={{ fontWeight: 600 }}>{health.totalSessions}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Сообщений: </span>
-                <span style={{ fontWeight: 600 }}>{health.totalMessages}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Поиск: </span>
-                <span style={{ fontWeight: 600, color: health.embeddingsEnabled ? 'var(--success)' : 'var(--danger)' }}>
-                  {health.embeddingsEnabled ? 'семантический' : 'текстовый'}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => handleRegenerate(true)}
-                  disabled={regenerating || health.withoutEmbedding === 0}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                    border: '1px solid var(--border-subtle)', background: 'transparent',
-                    color: health.withoutEmbedding > 0 ? 'var(--accent)' : 'var(--text-muted)',
-                    cursor: regenerating || health.withoutEmbedding === 0 ? 'not-allowed' : 'pointer',
-                    opacity: regenerating ? 0.6 : 1,
-                  }}
-                >
-                  <RefreshCw size={14} className={regenerating ? 'spin' : ''} />
-                  {health.withoutEmbedding > 0 ? `Догенерировать (${health.withoutEmbedding})` : 'Все имеют эмбеддинги'}
-                </button>
-                <button
-                  onClick={() => handleRegenerate(false)}
-                  disabled={regenerating || health.totalInstructions === 0}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                    border: '1px solid var(--border-subtle)', background: 'transparent',
-                    color: 'var(--text-muted)',
-                    cursor: regenerating || health.totalInstructions === 0 ? 'not-allowed' : 'pointer',
-                    opacity: regenerating ? 0.6 : 1,
-                  }}
-                >
-                  <RefreshCw size={14} className={regenerating ? 'spin' : ''} />
-                  Перегенерировать все
-                </button>
-              </div>
-              {regenResult && (
-                <div style={{ marginTop: 10, fontSize: 13, color: 'var(--success)', animation: 'fade-in-up 0.3s ease both' }}>
-                  {regenResult}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Categories Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{categories.length} категорий</span>
