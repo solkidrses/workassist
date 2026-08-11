@@ -2,6 +2,9 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { NextResponse } from 'next/server';
 import { verifySession } from '@/lib/sessionCookie';
+import { prisma } from '@/lib/prisma';
+
+type StatusRow = { status: string };
 
 export async function GET(
   req: Request,
@@ -11,6 +14,17 @@ export async function GET(
 
   const session = verifySession(req.headers.get('cookie'));
   if (!session.ok) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  try {
+    const rows = await prisma.$queryRaw<StatusRow[]>`
+      SELECT status FROM users WHERE "telegramId" = ${session.telegramId} LIMIT 1
+    `;
+    if (rows.length === 0 || rows[0].status !== 'approved') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 

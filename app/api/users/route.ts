@@ -53,7 +53,7 @@ export async function PUT(req: Request) {
   try {
     const { telegramId, action, role } = (await req.json().catch(() => ({}))) as {
       telegramId?: string;
-      action?: 'approve' | 'reject' | 'setRole' | 'delete';
+      action?: 'approve' | 'reject' | 'ban' | 'setRole' | 'delete';
       role?: string;
     };
 
@@ -74,6 +74,11 @@ export async function PUT(req: Request) {
     } else if (action === 'reject') {
       await prisma.$executeRaw`
         UPDATE users SET status = 'rejected', "updatedAt" = NOW()
+        WHERE "telegramId" = ${telegramId}
+      `;
+    } else if (action === 'ban') {
+      await prisma.$executeRaw`
+        UPDATE users SET status = 'banned', "updatedAt" = NOW()
         WHERE "telegramId" = ${telegramId}
       `;
     } else if (action === 'setRole') {

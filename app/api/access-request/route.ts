@@ -92,6 +92,9 @@ export async function POST(req: Request) {
         }
         return NextResponse.json({ success: true, data: { status: 'pending', message: 'Request resubmitted' } });
       }
+      if (user.status === 'banned') {
+        return NextResponse.json({ error: 'Access denied', code: 'BANNED' }, { status: 403 });
+      }
     }
 
     const id = crypto.randomUUID();

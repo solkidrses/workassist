@@ -46,9 +46,9 @@ def main():
     print("Extracting and restarting...")
     stdin, stdout, stderr = ssh.exec_command(
         f"cd {PROJECT_DIR} && "
-        f"if [ -d public/uploads ]; then cp -r public/uploads /tmp/uploads_backup; fi && "
+        f"if [ -d data/uploads ]; then cp -r data/uploads /tmp/uploads_backup; fi && "
         f"rm -rf .next && tar -xzf next-build.tar.gz && rm next-build.tar.gz && "
-        f"if [ -d /tmp/uploads_backup ]; then cp -r /tmp/uploads_backup/* public/uploads/ 2>/dev/null; rm -rf /tmp/uploads_backup; fi && "
+        f"if [ -d /tmp/uploads_backup ]; then mkdir -p data/uploads && cp -r /tmp/uploads_backup/* data/uploads/ 2>/dev/null; rm -rf /tmp/uploads_backup; fi && "
         f"pm2 restart next-app",
         timeout=120,
     )

@@ -46,6 +46,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
         if (data?.code === 'PENDING') setAccess('pending');
         else if (data?.code === 'REJECTED') setAccess('rejected');
+        else if (data?.code === 'BANNED') setAccess('no_access');
         else setAccess('no_access');
       } catch {
         setAccess('no_access');
@@ -53,6 +54,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     };
 
     check();
+    const refreshInterval = setInterval(check, 90 * 60 * 1000);
+    return () => clearInterval(refreshInterval);
   }, [isTelegramReady, JSON.stringify(authHeaders)]);
 
   useEffect(() => {

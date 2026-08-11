@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 const COOKIE_NAME = 'wa_session';
-const MAX_AGE_SECONDS = 86400; // 24h
+const MAX_AGE_SECONDS = 7200; // 2h
 
 function getKey(): string {
   const key = process.env.BOT_TOKEN;

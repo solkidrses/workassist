@@ -56,6 +56,9 @@ async function notifyAdmin(telegramId: string, username: string | null, firstNam
         { text: '✅ Одобрить', callback_data: `approve:${telegramId}` },
         { text: '❌ Отклонить', callback_data: `reject:${telegramId}` },
       ],
+      [
+        { text: '🚫 Заблокировать', callback_data: `ban:${telegramId}` },
+      ],
     ],
   };
   try {
@@ -108,6 +111,10 @@ bot.use(async (ctx, next) => {
     `;
     await notifyAdmin(String(ctx.from.id), ctx.from.username || null, ctx.from.first_name || null);
     await ctx.reply("Ваша заявка была отклонена. Заявка отправлена повторно. Ожидайте одобрения.");
+    return;
+  }
+
+  if (user.status === 'banned') {
     return;
   }
 
@@ -199,6 +206,18 @@ bot.callbackQuery(/^reject:(.+)$/, async (ctx) => {
     await bot.api.sendMessage(telegramId, "❌ Ваша заявка на доступ отклонена администратором.");
   } catch (e) {
     console.error('Reject error:', e);
+    await ctx.answerCallbackQuery({ text: "Ошибка" });
+  }
+});
+
+bot.callbackQuery(/^ban:(.+)$/, async (ctx) => {
+  const telegramId = ctx.match[1];
+  try {
+    await prisma.$executeRaw`UPDATE users SET status = 'banned', "updatedAt" = NOW() WHERE "telegramId" = ${telegramId}`;
+    await ctx.editMessageText(`🚫 Пользователь ${telegramId} заблокирован.`);
+    await ctx.answerCallbackQuery({ text: "Заблокирован" });
+  } catch (e) {
+    console.error('Ban error:', e);
     await ctx.answerCallbackQuery({ text: "Ошибка" });
   }
 });

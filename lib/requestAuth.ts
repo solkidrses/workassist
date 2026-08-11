@@ -6,7 +6,7 @@ export const TELEGRAM_AUTH_ERROR = 'Не удалось подтвердить T
 
 type AuthResult = {
   ok: boolean;
-  code?: 'INVALID' | 'PENDING' | 'REJECTED' | 'NO_ACCESS';
+  code?: 'INVALID' | 'PENDING' | 'REJECTED' | 'BANNED' | 'NO_ACCESS';
   user?: {
     telegramId: string;
     role: string;
@@ -110,6 +110,10 @@ export async function authorizeRequest(req: Request): Promise<AuthResult> {
 
     if (user.status === 'rejected') {
       return { ok: false, code: 'REJECTED' };
+    }
+
+    if (user.status === 'banned') {
+      return { ok: false, code: 'BANNED' };
     }
 
     if (user.status === 'approved') {

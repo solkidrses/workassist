@@ -73,12 +73,12 @@ export default function AdminPage() {
   }, [authHeaders, isTelegramReady]);
 
   useEffect(() => {
-    if (!isTelegramReady) return;
+    if (!isTelegramReady || access !== 'ok' || role !== 'admin') return;
     fetchCategories();
-  }, [isTelegramReady, JSON.stringify(authHeaders), fetchCategories]);
+  }, [isTelegramReady, access, role, JSON.stringify(authHeaders), fetchCategories]);
 
   useEffect(() => {
-    if (!isTelegramReady) return;
+    if (!isTelegramReady || access !== 'ok' || role !== 'admin') return;
     const fetchMetrics = async () => {
       try {
         const res = await fetch('/api/admin/metrics', { headers: authHeaders, cache: 'no-store' });
@@ -105,11 +105,11 @@ export default function AdminPage() {
   }, [authHeaders, isTelegramReady]);
 
   useEffect(() => {
-    if (!isTelegramReady || activeTab !== 'users') return;
+    if (!isTelegramReady || access !== 'ok' || role !== 'admin' || activeTab !== 'users') return;
     fetchUsers();
-  }, [isTelegramReady, activeTab, JSON.stringify(authHeaders), fetchUsers]);
+  }, [isTelegramReady, access, role, activeTab, JSON.stringify(authHeaders), fetchUsers]);
 
-  const handleUserAction = async (telegramId: string, action: 'approve' | 'reject' | 'setRole' | 'delete', role?: string) => {
+  const handleUserAction = async (telegramId: string, action: 'approve' | 'reject' | 'ban' | 'setRole' | 'delete', role?: string) => {
     try {
       const res = await fetch('/api/users', {
         method: 'PUT',
@@ -203,14 +203,14 @@ export default function AdminPage() {
     setEditColor(cat.color || '');
   };
 
-  if (!isTelegramReady && !authError) {
+  if (access === 'loading' || (!isTelegramReady && !authError)) {
     return (
       <div className="page-shell">
         <div className="status-banner pending">
           <div className="pulse-dot" />
           <div>
-            <div className="status-banner-title">Подключаем Telegram</div>
-            <div className="status-banner-text">Жду подтверждённую сессию...</div>
+            <div className="status-banner-title">Проверка доступа</div>
+            <div className="status-banner-text">Подтверждаю вашу сессию...</div>
           </div>
         </div>
       </div>
@@ -504,6 +504,13 @@ export default function AdminPage() {
                           style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: 'var(--danger)', fontSize: 13 }}
                         >
                           <X size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleUserAction(u.telegramId, 'ban')}
+                          style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: 'var(--danger)', fontSize: 13 }}
+                          title="Заблокировать навсегда"
+                        >
+                          🚫
                         </button>
                       </div>
                     ))}
