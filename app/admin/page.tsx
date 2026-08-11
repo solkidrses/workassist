@@ -234,7 +234,7 @@ export default function AdminPage() {
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Админка</h1>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, padding: '0 16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <button
           onClick={() => setActiveTab('categories')}
           className="tag-chip"
@@ -267,7 +267,7 @@ export default function AdminPage() {
       </div>
 
       {error && (
-        <div className="status-banner error">
+        <div className="status-banner error" style={{ margin: '0 16px 16px' }}>
           <div>
             <div className="status-banner-title">Ошибка</div>
             <div className="status-banner-text">{error}</div>
@@ -316,8 +316,8 @@ export default function AdminPage() {
         {/* Categories Section */}
         {activeTab === 'categories' && (
         <>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{categories.length} категории</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexShrink: 0 }}>
+          <span style={{ fontSize: 14, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{categories.length} категории</span>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="tag-chip active"
@@ -390,7 +390,7 @@ export default function AdminPage() {
               <div
                 key={cat.id}
                 className="zinc-card card-enter"
-                style={{ animationDelay: `${0.02 + i * 0.04}s`, display: 'flex', alignItems: 'center', gap: 12 }}
+                style={{ animationDelay: `${0.02 + i * 0.04}s`, display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}
               >
                 {editingId === cat.id ? (
                   <div style={{ flex: 1 }}>
@@ -438,8 +438,8 @@ export default function AdminPage() {
                     }}>
                       {cat.icon || <Folder size={18} style={{ color: cat.color || 'var(--accent)' }} />}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600 }}>{cat.name}</div>
+                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                         {cat.instructionCount} {cat.instructionCount === 1 ? 'инструкция' : cat.instructionCount >= 2 && cat.instructionCount <= 4 ? 'инструкции' : 'инструкций'}
                       </div>
@@ -483,33 +483,35 @@ export default function AdminPage() {
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Заявки</div>
                     {users.filter(u => u.status === 'pending').map((u) => (
-                      <div key={u.id} className="zinc-card card-enter" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, borderLeft: '3px solid var(--accent)' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                      <div key={u.id} className="zinc-card card-enter" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, borderLeft: '3px solid var(--accent)', overflow: 'hidden' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
                           {u.firstName?.[0] || '?'}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 600 }}>{u.firstName || 'Без имени'}</div>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.username ? `@${u.username}` : `ID: ${u.telegramId}`}</div>
+                        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.firstName || 'Без имени'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username ? `@${u.username}` : `ID: ${u.telegramId}`}</div>
                         </div>
-                        <button
-                          onClick={() => handleUserAction(u.telegramId, 'approve')}
-                          style={{ background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: '#000', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <Check size={14} /> Одобрить
-                        </button>
-                        <button
-                          onClick={() => handleUserAction(u.telegramId, 'reject')}
-                          style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: 'var(--danger)', fontSize: 13 }}
-                        >
-                          <X size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleUserAction(u.telegramId, 'ban')}
-                          style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: 'var(--danger)', fontSize: 13 }}
-                          title="Заблокировать навсегда"
-                        >
-                          🚫
-                        </button>
+                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                          <button
+                            onClick={() => handleUserAction(u.telegramId, 'approve')}
+                            style={{ background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: '#000', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' }}
+                          >
+                            <Check size={13} /> Одобрить
+                          </button>
+                          <button
+                            onClick={() => handleUserAction(u.telegramId, 'reject')}
+                            style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: 'var(--danger)', fontSize: 12, display: 'flex', alignItems: 'center' }}
+                          >
+                            <X size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleUserAction(u.telegramId, 'ban')}
+                            style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: 'var(--danger)', fontSize: 12 }}
+                            title="Заблокировать навсегда"
+                          >
+                            🚫
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -519,32 +521,35 @@ export default function AdminPage() {
                   Пользователи ({users.filter(u => u.status === 'approved').length})
                 </div>
                 {users.filter(u => u.status === 'approved').map((u) => (
-                  <div key={u.id} className="zinc-card card-enter" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-user-message)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                  <div key={u.id} className="zinc-card card-enter" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, overflow: 'hidden' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-user-message)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
                       {u.firstName?.[0] || '?'}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600 }}>{u.firstName || 'Без имени'}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.username ? `@${u.username}` : `ID: ${u.telegramId}`}</div>
+                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.firstName || 'Без имени'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username ? `@${u.username}` : `ID: ${u.telegramId}`}</div>
                     </div>
-                    <button
-                      onClick={() => handleUserAction(u.telegramId, 'setRole', u.role === 'admin' ? 'viewer' : 'admin')}
-                      className="tag-chip"
-                      style={{
-                        backgroundColor: u.role === 'admin' ? 'var(--accent)' : 'transparent',
-                        color: u.role === 'admin' ? '#000' : 'var(--text-muted)',
-                        border: u.role === 'admin' ? 'none' : '1px solid var(--border-subtle)',
-                        fontSize: 12,
-                      }}
-                    >
-                      {u.role === 'admin' ? 'Админ' : 'Читатель'}
-                    </button>
-                    <button
-                      onClick={() => handleUserAction(u.telegramId, 'delete')}
-                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 6 }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                      <button
+                        onClick={() => handleUserAction(u.telegramId, 'setRole', u.role === 'admin' ? 'viewer' : 'admin')}
+                        className="tag-chip"
+                        style={{
+                          backgroundColor: u.role === 'admin' ? 'var(--accent)' : 'transparent',
+                          color: u.role === 'admin' ? '#000' : 'var(--text-muted)',
+                          border: u.role === 'admin' ? 'none' : '1px solid var(--border-subtle)',
+                          fontSize: 11,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {u.role === 'admin' ? 'Админ' : 'Читатель'}
+                      </button>
+                      <button
+                        onClick={() => handleUserAction(u.telegramId, 'delete')}
+                        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center' }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
                 ))}
 
