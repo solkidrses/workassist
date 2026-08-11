@@ -18,6 +18,19 @@ export async function PUT(
     }
 
     const { id } = await params;
+
+    // Verify ownership
+    const ownerRows = await prisma.$queryRaw<{ telegramId: string | null }[]>`
+      SELECT "telegramId" FROM chat_sessions WHERE id = ${id} LIMIT 1
+    `;
+    if (ownerRows.length === 0) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+    const owner = ownerRows[0].telegramId;
+    if (owner && owner !== auth.user!.telegramId) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     const { title } = (await req.json().catch(() => ({}))) as { title?: string };
 
     if (title) {
@@ -42,6 +55,19 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    // Verify ownership
+    const ownerRows = await prisma.$queryRaw<{ telegramId: string | null }[]>`
+      SELECT "telegramId" FROM chat_sessions WHERE id = ${id} LIMIT 1
+    `;
+    if (ownerRows.length === 0) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+    const owner = ownerRows[0].telegramId;
+    if (owner && owner !== auth.user!.telegramId) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     await prisma.$executeRaw`DELETE FROM chat_messages WHERE "sessionId" = ${id}`;
     await prisma.$executeRaw`DELETE FROM chat_sessions WHERE id = ${id}`;
 

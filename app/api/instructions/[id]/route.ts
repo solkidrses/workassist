@@ -64,6 +64,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const body = await req.json();
     const { title, summary, fullText, tag } = body;
 
+    const MAX_TITLE = 200;
+    const MAX_SUMMARY = 1000;
+    const MAX_FULLTEXT = 100_000;
+    const MAX_TAG = 50;
+
+    if (title && title.length > MAX_TITLE) {
+      return NextResponse.json({ error: `Title too long (max ${MAX_TITLE} chars)` }, { status: 400 });
+    }
+    if (summary && summary.length > MAX_SUMMARY) {
+      return NextResponse.json({ error: `Summary too long (max ${MAX_SUMMARY} chars)` }, { status: 400 });
+    }
+    if (fullText && fullText.length > MAX_FULLTEXT) {
+      return NextResponse.json({ error: `Text too long (max ${MAX_FULLTEXT} chars)` }, { status: 400 });
+    }
+    if (tag && tag.length > MAX_TAG) {
+      return NextResponse.json({ error: `Tag too long (max ${MAX_TAG} chars)` }, { status: 400 });
+    }
+
     // Regenerate embedding if text fields changed and API key is available
     const hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
     let embeddingStr: string | null = null;

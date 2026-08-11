@@ -52,12 +52,27 @@ export async function POST(req: Request) {
     }
 
     let activeSessionId = sessionId;
+    const userTelegramId = auth.user!.telegramId;
+
+    // If sessionId provided, verify it belongs to this user
+    if (activeSessionId) {
+      const ownerRows = await prisma.$queryRaw<{ telegramId: string | null }[]>`
+        SELECT "telegramId" FROM chat_sessions WHERE id = ${activeSessionId} LIMIT 1
+      `;
+      if (ownerRows.length === 0) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      }
+      const owner = ownerRows[0].telegramId;
+      if (owner && owner !== userTelegramId) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
+    }
 
     // Create new session if none provided
     if (!activeSessionId) {
       const sessionTitle = lastMessage.content.split(' ').slice(0, 5).join(' ').substring(0, 60);
       const newId = crypto.randomUUID();
-      await prisma.$executeRaw`INSERT INTO chat_sessions (id, title, "createdAt") VALUES (${newId}, ${sessionTitle}, NOW())`;
+      await prisma.$executeRaw`INSERT INTO chat_sessions (id, title, "telegramId", "createdAt") VALUES (${newId}, ${sessionTitle}, ${userTelegramId}, NOW())`;
       activeSessionId = newId;
     }
 

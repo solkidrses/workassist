@@ -7,22 +7,21 @@ const PUBLIC_PATHS = ['/api/auth', '/api/access-request']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow API auth endpoint and access requests
-  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
-    return NextResponse.next()
-  }
-
   // Allow static assets and Next.js internals
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    pathname.includes('.') ||
-    pathname.startsWith('/api/')
+    pathname.includes('.')
   ) {
     return NextResponse.next()
   }
 
-  // Check session cookie
+  // Allow public API endpoints
+  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
+    return NextResponse.next()
+  }
+
+  // For all other routes (pages and API), check session cookie
   const cookieHeader = request.headers.get('cookie')
   const hasSession = await verifySessionEdge(cookieHeader)
 

@@ -37,9 +37,10 @@ model ChatMessage {
 }
 
 model ChatSession {
-  id        String   @id @default(cuid())
-  title     String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  title      String
+  telegramId String?
+  createdAt  DateTime @default(now())
 
   @@map("chat_sessions")
 }

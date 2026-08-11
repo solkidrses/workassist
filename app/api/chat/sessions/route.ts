@@ -19,6 +19,7 @@ export async function GET(req: Request) {
     const rows = await prisma.$queryRaw<ChatSession[]>`
       SELECT id, title, "createdAt"
       FROM chat_sessions
+      WHERE "telegramId" = ${auth.user!.telegramId}
       ORDER BY "createdAt" DESC
       LIMIT 50
     `;
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
     const id = crypto.randomUUID();
     const sessionTitle = (title || 'Новый чат').substring(0, 60);
 
-    await prisma.$executeRaw`INSERT INTO chat_sessions (id, title, "createdAt") VALUES (${id}, ${sessionTitle}, NOW())`;
+    await prisma.$executeRaw`INSERT INTO chat_sessions (id, title, "telegramId", "createdAt") VALUES (${id}, ${sessionTitle}, ${auth.user!.telegramId}, NOW())`;
 
     return NextResponse.json({ success: true, data: { id, title: sessionTitle } });
   } catch (error) {
