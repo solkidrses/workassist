@@ -38,7 +38,7 @@ type Category = {
 export default function UploadPage() {
   const router = useRouter();
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
-  const { access, requestAccess, requestStatus } = useAccessCheck();
+  const { access, role, requestAccess, requestStatus } = useAccessCheck();
 
   const [text, setText] = useState('');
   const [photoBase64, setPhotoBase64] = useState<string>('');
@@ -156,6 +156,19 @@ export default function UploadPage() {
 
   if (access !== 'ok' && access !== 'loading') {
     return <NoAccessScreen access={access} requestAccess={requestAccess} requestStatus={requestStatus} />;
+  }
+
+  if (access === 'ok' && role !== 'admin') {
+    return (
+      <div className="page-shell" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+        <div style={{ textAlign: 'center', maxWidth: 320 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 8px' }}>Доступ запрещён</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            Добавлять инструкции могут только администраторы.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

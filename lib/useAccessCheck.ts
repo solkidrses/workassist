@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
 type AccessState = 'loading' | 'ok' | 'no_access' | 'pending' | 'rejected';
+type UserRole = 'admin' | 'viewer' | null;
 
-export function useAccessCheck(): { access: AccessState; requestAccess: () => Promise<void>; requestStatus: string | null } {
+export function useAccessCheck(): { access: AccessState; role: UserRole; requestAccess: () => Promise<void>; requestStatus: string | null } {
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
   const [access, setAccess] = useState<AccessState>('loading');
+  const [role, setRole] = useState<UserRole>(null);
   const [requestStatus, setRequestStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -18,6 +20,17 @@ export function useAccessCheck(): { access: AccessState; requestAccess: () => Pr
         const res = await fetch('/api/instructions', { headers: authHeaders, cache: 'no-store' });
         if (res.ok) {
           setAccess('ok');
+          const roleRes = await fetch('/api/users?me=1', { headers: authHeaders, cache: 'no-store' });
+          if (roleRes.ok) {
+            const roleData = await roleRes.json();
+            if (roleData.success && roleData.data?.role) {
+              setRole(roleData.data.role);
+            } else {
+              setRole('viewer');
+            }
+          } else {
+            setRole('viewer');
+          }
         } else if (res.status === 403) {
           const data = await res.json();
           if (data.code === 'PENDING') setAccess('pending');
@@ -56,5 +69,5 @@ export function useAccessCheck(): { access: AccessState; requestAccess: () => Pr
     }
   };
 
-  return { access, requestAccess, requestStatus };
+  return { access, role, requestAccess, requestStatus };
 }

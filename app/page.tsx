@@ -43,7 +43,7 @@ export default function LibraryPage() {
   const [requestError, setRequestError] = useState<string | null>(null);
   const [shaking, setShaking] = useState(false);
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
-  const { access, requestAccess, requestStatus } = useAccessCheck();
+  const { access, role, requestAccess, requestStatus } = useAccessCheck();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedTag, setSelectedTag] = useState('all');
@@ -322,7 +322,8 @@ export default function LibraryPage() {
         )}
       </div>
 
-      {/* Floating Action Button */}
+      {/* Floating Action Button — admin only */}
+      {role === 'admin' && (
       <Link href="/upload" style={{
         position: 'fixed',
         bottom: 72,
@@ -340,6 +341,7 @@ export default function LibraryPage() {
       }}>
         <Plus size={22} />
       </Link>
+      )}
     </div>
   );
 }

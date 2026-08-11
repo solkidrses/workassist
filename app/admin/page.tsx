@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Folder, Check, UserCog } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
+import { useAccessCheck } from '@/lib/useAccessCheck';
 
 type Category = {
   id: string;
@@ -27,6 +28,7 @@ type AppUser = {
 
 export default function AdminPage() {
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
+  const { access, role } = useAccessCheck();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -215,13 +217,13 @@ export default function AdminPage() {
     );
   }
 
-  if (authError) {
+  if (authError || (access === 'ok' && role !== 'admin')) {
     return (
       <div className="page-shell">
         <div className="status-banner error">
           <div>
             <div className="status-banner-title">Доступ недоступен</div>
-            <div className="status-banner-text">{authError}</div>
+            <div className="status-banner-text">{authError || 'Только для администраторов'}</div>
           </div>
         </div>
       </div>

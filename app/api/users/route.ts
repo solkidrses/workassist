@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin } from '@/lib/requestAuth';
+import { requireAdmin, authorizeRequest } from '@/lib/requestAuth';
 
 type UserListRow = {
   id: string;
@@ -13,6 +13,17 @@ type UserListRow = {
 };
 
 export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const me = searchParams.get('me');
+
+  if (me) {
+    const auth = await authorizeRequest(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+    return NextResponse.json({ success: true, data: { telegramId: auth.user!.telegramId, role: auth.user!.role, status: 'approved' } });
+  }
+
   const adminCheck = await requireAdmin(req);
   if (adminCheck instanceof NextResponse) return adminCheck;
 
