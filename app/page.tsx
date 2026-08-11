@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
+import { useAccessCheck } from '@/lib/useAccessCheck';
+import { NoAccessScreen } from '@/components/NoAccessScreen';
 
 type Instruction = {
   id: string;
@@ -41,6 +43,7 @@ export default function LibraryPage() {
   const [requestError, setRequestError] = useState<string | null>(null);
   const [shaking, setShaking] = useState(false);
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
+  const { access, requestAccess, requestStatus } = useAccessCheck();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedTag, setSelectedTag] = useState('all');
@@ -181,6 +184,10 @@ export default function LibraryPage() {
     }
     fetchInstructions();
   };
+
+  if (access !== 'ok' && access !== 'loading') {
+    return <NoAccessScreen access={access} requestAccess={requestAccess} requestStatus={requestStatus} />;
+  }
 
   return (
     <div className="page-shell" style={{ paddingBottom: 80 }}>

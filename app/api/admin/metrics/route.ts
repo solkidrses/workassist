@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { execSync } from 'child_process';
-import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { requireAdmin } from '@/lib/requestAuth';
 
 export async function GET(req: Request) {
-  if (!isAuthorizedRequest(req)) {
-    return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
-  }
+  const adminCheck = await requireAdmin(req);
+  if (adminCheck instanceof NextResponse) return adminCheck;
 
   try {
     const cpuUsage = execSync("top -bn1 | grep 'Cpu(s)' | awk '{print 100 - $8}'", { encoding: 'utf-8' }).trim();

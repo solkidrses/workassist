@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, X, Check, FileText, Image as ImageIcon, FileUp, Sparkles, Loader2 } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
+import { useAccessCheck } from '@/lib/useAccessCheck';
+import { NoAccessScreen } from '@/components/NoAccessScreen';
 
 type UploadResult = {
   id: string;
@@ -36,6 +38,7 @@ type Category = {
 export default function UploadPage() {
   const router = useRouter();
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
+  const { access, requestAccess, requestStatus } = useAccessCheck();
 
   const [text, setText] = useState('');
   const [photoBase64, setPhotoBase64] = useState<string>('');
@@ -150,6 +153,10 @@ export default function UploadPage() {
   };
 
   const canSubmit = isTelegramReady && !authError && (text || photoBase64) && !loading;
+
+  if (access !== 'ok' && access !== 'loading') {
+    return <NoAccessScreen access={access} requestAccess={requestAccess} requestStatus={requestStatus} />;
+  }
 
   return (
     <div className="page-shell" style={{ paddingBottom: 80 }}>

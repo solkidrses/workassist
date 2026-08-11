@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
-import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { authorizeRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
@@ -29,8 +29,9 @@ export const maxDuration = 60; // Allow 60s for streaming
 
 export async function POST(req: Request) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
+    const auth = await authorizeRequest(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
     }
 
     const { messages, sessionId } = await req.json() as { messages: ChatMessage[]; sessionId?: string };

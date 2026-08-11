@@ -1,8 +1,10 @@
 import { Bot, InlineKeyboard } from "grammy";
 import dotenv from "dotenv";
 import path from "path";
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-// Load .env from project root
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const token = process.env.BOT_TOKEN;
@@ -10,15 +12,43 @@ if (!token) {
   throw new Error("BOT_TOKEN is required");
 }
 
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
 const bot = new Bot(token);
 const API_URL = process.env.API_URL || "http://localhost:3000";
 const TMA_URL = process.env.NEXT_PUBLIC_TMA_URL || "https://example.com";
-const ALLOWED_USER_ID = parseInt(process.env.ALLOWED_USER_ID || "0", 10);
+const ADMIN_TELEGRAM_ID = process.env.ADMIN_TELEGRAM_ID || "";
 
-// Simple auth middleware
+type UserRow = {
+  telegramId: string;
+  role: string;
+  status: string;
+};
+
+async function isUserApproved(telegramId: number): Promise<boolean> {
+  if (ADMIN_TELEGRAM_ID && String(telegramId) === ADMIN_TELEGRAM_ID) return true;
+
+  try {
+    const rows = await prisma.$queryRaw<UserRow[]>`
+      SELECT "telegramId", role, status FROM users WHERE "telegramId" = ${String(telegramId)} LIMIT 1
+    `;
+    return rows.length > 0 && rows[0].status === 'approved';
+  } catch (e) {
+    console.error('DB check failed, blocking user:', e);
+    return false;
+  }
+}
+
 bot.use(async (ctx, next) => {
-  if (ctx.from?.id !== ALLOWED_USER_ID && ALLOWED_USER_ID !== 0) {
-    console.log(`Blocked user ${ctx.from?.id}`);
+  if (!ctx.from) return;
+  const approved = await isUserApproved(ctx.from.id);
+  if (!approved) {
+    console.log(`Blocked user ${ctx.from.id}`);
+    if (ctx.message) {
+      await ctx.reply("У вас нет доступа. Откройте Mini App и запросите доступ у администратора.");
+    }
     return;
   }
   await next();
@@ -61,7 +91,6 @@ bot.on("message:text", async (ctx) => {
     if (!res.ok) {
       if (data.conflict) {
         const matches = data.matches as UploadConflictMatch[];
-        // Return information about conflict
         await ctx.api.editMessageText(
           ctx.chat.id,
           waitMsg.message_id,
@@ -87,7 +116,30 @@ bot.on("message:text", async (ctx) => {
   }
 });
 
-// Start bot
+bot.callbackQuery(/^approve:(.+)$/, async (ctx) => {
+  const telegramId = ctx.match[1];
+  try {
+    await prisma.$executeRaw`UPDATE users SET status = 'approved', "updatedAt" = NOW() WHERE "telegramId" = ${telegramId}`;
+    await ctx.editMessageText(`✅ Пользователь ${telegramId} одобрен.`);
+    await ctx.answerCallbackQuery({ text: "Одобрено" });
+  } catch (e) {
+    console.error('Approve error:', e);
+    await ctx.answerCallbackQuery({ text: "Ошибка" });
+  }
+});
+
+bot.callbackQuery(/^reject:(.+)$/, async (ctx) => {
+  const telegramId = ctx.match[1];
+  try {
+    await prisma.$executeRaw`UPDATE users SET status = 'rejected', "updatedAt" = NOW() WHERE "telegramId" = ${telegramId}`;
+    await ctx.editMessageText(`❌ Пользователь ${telegramId} отклонён.`);
+    await ctx.answerCallbackQuery({ text: "Отклонено" });
+  } catch (e) {
+    console.error('Reject error:', e);
+    await ctx.answerCallbackQuery({ text: "Ошибка" });
+  }
+});
+
 bot.start({
   onStart: (botInfo) => {
     console.log(`Bot @${botInfo.username} is running!`);

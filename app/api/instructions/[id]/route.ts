@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { authorizeRequest, requireAdmin, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import OpenAI from 'openai';
 import { unlink } from 'fs/promises';
 import path from 'path';
@@ -29,8 +29,9 @@ type InstructionUpdateRow = {
 // GET /api/instructions/[id]
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
+    const auth = await authorizeRequest(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
     }
 
     const { id } = await params;
@@ -56,9 +57,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 // PUT /api/instructions/[id]
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
-    }
+    const adminCheck = await requireAdmin(req);
+    if (adminCheck instanceof NextResponse) return adminCheck;
 
     const { id } = await params;
     const body = await req.json();
@@ -104,9 +104,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 // DELETE /api/instructions/[id]
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
-    }
+    const adminCheck = await requireAdmin(req);
+    if (adminCheck instanceof NextResponse) return adminCheck;
 
     const { id } = await params;
 

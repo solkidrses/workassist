@@ -3,6 +3,8 @@
 import { Send, Trash2, Plus, MessageSquare, X, Trash } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
+import { useAccessCheck } from '@/lib/useAccessCheck';
+import { NoAccessScreen } from '@/components/NoAccessScreen';
 import MarkdownText from '@/components/MarkdownText';
 
 const getErrorMessage = (error: unknown) => {
@@ -35,6 +37,7 @@ export default function ChatPage() {
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
+  const { access, requestAccess, requestStatus } = useAccessCheck();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
@@ -264,6 +267,10 @@ export default function ChatPage() {
       setIsLoading(false);
     }
   };
+
+  if (access !== 'ok' && access !== 'loading') {
+    return <NoAccessScreen access={access} requestAccess={requestAccess} requestStatus={requestStatus} />;
+  }
 
   return (
     <div className="page-shell" style={{ paddingBottom: 130 }}>

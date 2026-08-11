@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { authorizeRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { cleanupText } from '@/lib/textCleanup';
 import mammoth from 'mammoth';
 import TurndownService from 'turndown';
@@ -26,8 +26,9 @@ const EXT_BY_MIME: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
+    const auth = await authorizeRequest(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
     }
 
     const formData = await req.formData();

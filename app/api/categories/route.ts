@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { authorizeRequest, requireAdmin, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
@@ -26,8 +26,9 @@ function slugify(name: string): string {
 
 export async function GET(req: Request) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
+    const auth = await authorizeRequest(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
     }
 
     const rows = await prisma.$queryRaw<CategoryRow[]>`
@@ -46,9 +47,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
-    }
+    const adminCheck = await requireAdmin(req);
+    if (adminCheck instanceof NextResponse) return adminCheck;
 
     const { name, icon, color, parentId } = (await req.json().catch(() => ({}))) as {
       name?: string;

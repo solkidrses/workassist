@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { authorizeRequest, requireAdmin, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { NextResponse } from 'next/server';
 
 type CategoryRow = {
@@ -17,9 +17,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
-    }
+    const adminCheck = await requireAdmin(req);
+    if (adminCheck instanceof NextResponse) return adminCheck;
 
     const { id } = await params;
     const { name, icon, color, parentId, sortOrder } = (await req.json().catch(() => ({}))) as {
@@ -80,9 +79,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
-    }
+    const adminCheck = await requireAdmin(req);
+    if (adminCheck instanceof NextResponse) return adminCheck;
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);

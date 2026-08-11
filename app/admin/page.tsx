@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Edit2, Save, X, Folder } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Folder, Check, UserCog } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
 type Category = {
@@ -13,6 +13,16 @@ type Category = {
   parentId: string | null;
   sortOrder: number;
   instructionCount: number;
+};
+
+type AppUser = {
+  id: string;
+  telegramId: string;
+  username: string | null;
+  firstName: string | null;
+  role: string;
+  status: string;
+  createdAt: string;
 };
 
 export default function AdminPage() {
@@ -37,6 +47,10 @@ export default function AdminPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [metrics, setMetrics] = useState<{ cpu: number; memTotal: number; memUsed: number; memPercent: number; diskTotal: number; diskUsed: number; diskFree: number; diskPercent: number } | null>(null);
+
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'categories' | 'users'>('categories');
 
   const fetchCategories = useCallback(async () => {
     if (!isTelegramReady) return;
@@ -74,6 +88,42 @@ export default function AdminPage() {
     const interval = setInterval(fetchMetrics, 5000);
     return () => clearInterval(interval);
   }, [isTelegramReady, JSON.stringify(authHeaders)]);
+
+  const fetchUsers = useCallback(async () => {
+    if (!isTelegramReady) return;
+    setUsersLoading(true);
+    try {
+      const res = await fetch('/api/users', { headers: authHeaders, cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setUsers(data.data);
+      }
+    } catch {}
+    setUsersLoading(false);
+  }, [authHeaders, isTelegramReady]);
+
+  useEffect(() => {
+    if (!isTelegramReady || activeTab !== 'users') return;
+    fetchUsers();
+  }, [isTelegramReady, activeTab, JSON.stringify(authHeaders), fetchUsers]);
+
+  const handleUserAction = async (telegramId: string, action: 'approve' | 'reject' | 'setRole' | 'delete', role?: string) => {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ telegramId, action, role }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchUsers();
+      } else {
+        setError(data.error || 'Ошибка');
+      }
+    } catch {
+      setError('Ошибка сети');
+    }
+  };
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
@@ -181,7 +231,39 @@ export default function AdminPage() {
   return (
     <div className="page-shell" style={{ paddingBottom: 80 }}>
       <div className="header">
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Админка · Категории</h1>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Админка</h1>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button
+          onClick={() => setActiveTab('categories')}
+          className="tag-chip"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            backgroundColor: activeTab === 'categories' ? 'var(--accent)' : 'transparent',
+            color: activeTab === 'categories' ? '#000' : 'var(--text-muted)',
+            border: activeTab === 'categories' ? 'none' : '1px solid var(--border-subtle)',
+          }}
+        >
+          <Folder size={14} /> Категории
+        </button>
+        <button
+          onClick={() => setActiveTab('users')}
+          className="tag-chip"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            backgroundColor: activeTab === 'users' ? 'var(--accent)' : 'transparent',
+            color: activeTab === 'users' ? '#000' : 'var(--text-muted)',
+            border: activeTab === 'users' ? 'none' : '1px solid var(--border-subtle)',
+          }}
+        >
+          <UserCog size={14} /> Пользователи
+          {users.filter(u => u.status === 'pending').length > 0 && (
+            <span style={{ background: 'var(--danger)', color: '#fff', borderRadius: 10, fontSize: 10, padding: '1px 6px', fontWeight: 700 }}>
+              {users.filter(u => u.status === 'pending').length}
+            </span>
+          )}
+        </button>
       </div>
 
       {error && (
@@ -232,6 +314,8 @@ export default function AdminPage() {
         )}
 
         {/* Categories Section */}
+        {activeTab === 'categories' && (
+        <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{categories.length} категории</span>
           <button
@@ -382,6 +466,88 @@ export default function AdminPage() {
                 <Folder size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
                 <div style={{ fontSize: 15 }}>Категорий пока нет.<br />Создайте первую!</div>
               </div>
+            )}
+          </>
+        )}
+        </>
+        )}
+
+        {/* Users Section */}
+        {activeTab === 'users' && (
+          <>
+            {usersLoading ? (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>Загрузка...</div>
+            ) : (
+              <>
+                {users.filter(u => u.status === 'pending').length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Заявки</div>
+                    {users.filter(u => u.status === 'pending').map((u) => (
+                      <div key={u.id} className="zinc-card card-enter" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, borderLeft: '3px solid var(--accent)' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                          {u.firstName?.[0] || '?'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600 }}>{u.firstName || 'Без имени'}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.username ? `@${u.username}` : `ID: ${u.telegramId}`}</div>
+                        </div>
+                        <button
+                          onClick={() => handleUserAction(u.telegramId, 'approve')}
+                          style={{ background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: '#000', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <Check size={14} /> Одобрить
+                        </button>
+                        <button
+                          onClick={() => handleUserAction(u.telegramId, 'reject')}
+                          style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: 'var(--danger)', fontSize: 13 }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Пользователи ({users.filter(u => u.status === 'approved').length})
+                </div>
+                {users.filter(u => u.status === 'approved').map((u) => (
+                  <div key={u.id} className="zinc-card card-enter" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-user-message)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                      {u.firstName?.[0] || '?'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600 }}>{u.firstName || 'Без имени'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.username ? `@${u.username}` : `ID: ${u.telegramId}`}</div>
+                    </div>
+                    <button
+                      onClick={() => handleUserAction(u.telegramId, 'setRole', u.role === 'admin' ? 'viewer' : 'admin')}
+                      className="tag-chip"
+                      style={{
+                        backgroundColor: u.role === 'admin' ? 'var(--accent)' : 'transparent',
+                        color: u.role === 'admin' ? '#000' : 'var(--text-muted)',
+                        border: u.role === 'admin' ? 'none' : '1px solid var(--border-subtle)',
+                        fontSize: 12,
+                      }}
+                    >
+                      {u.role === 'admin' ? 'Админ' : 'Читатель'}
+                    </button>
+                    <button
+                      onClick={() => handleUserAction(u.telegramId, 'delete')}
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 6 }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+
+                {users.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>
+                    <UserCog size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+                    <div style={{ fontSize: 15 }}>Пользователей пока нет.<br />Заявки появятся здесь.</div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

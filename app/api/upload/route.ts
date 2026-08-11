@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isAuthorizedRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { authorizeRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import crypto from 'crypto';
@@ -37,8 +37,9 @@ type SimilarInstructionRow = {
 
 export async function POST(req: Request) {
   try {
-    if (!isAuthorizedRequest(req)) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR }, { status: 401 });
+    const auth = await authorizeRequest(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
     }
 
     const body = await req.json() as UploadRequestBody;
