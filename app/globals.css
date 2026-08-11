@@ -271,7 +271,6 @@ a, button {
   padding-bottom: max(env(safe-area-inset-bottom), 8px);
   z-index: 10;
   background: var(--bg-main);
-  border-top: 1px solid var(--border-subtle);
 }
 
 .bottom-nav-link {

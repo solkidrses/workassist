@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import BottomNav from "@/components/BottomNav";
 import { AccessProvider } from "@/lib/AccessProvider";
@@ -7,6 +7,14 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Personal AI Assistant",
   description: "Work instructions base in TMA",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#09090b",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

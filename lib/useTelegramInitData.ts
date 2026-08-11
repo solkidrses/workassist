@@ -34,7 +34,19 @@ export function useTelegramInitData() {
     }
 
     let isDisposed = false;
+    let twaInitialized = false;
     const startedAt = Date.now();
+
+    const initTWA = (webApp: TelegramWebApp) => {
+      if (twaInitialized) return;
+      twaInitialized = true;
+      webApp.ready();
+      webApp.expand?.();
+      webApp.setBackgroundColor?.('#09090b');
+      webApp.setBottomBarColor?.('#09090b');
+      webApp.setHeaderColor?.('#09090b');
+      webApp.disableVerticalSwipes?.();
+    };
 
     const syncTelegramState = () => {
       const webApp = window.Telegram?.WebApp;
@@ -45,12 +57,7 @@ export function useTelegramInitData() {
         return false;
       }
 
-      webApp.ready();
-      webApp.expand?.();
-      webApp.setBackgroundColor?.('#09090b');
-      webApp.setBottomBarColor?.('#09090b');
-      webApp.setHeaderColor?.('#09090b');
-      webApp.disableVerticalSwipes?.();
+      initTWA(webApp);
 
       const nextInitData = webApp.initData?.trim() ?? '';
       if (nextInitData) {

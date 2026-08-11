@@ -2,7 +2,6 @@
 
 import { Send, Trash2, Plus, MessageSquare, X, Trash } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useTelegramInitData } from '@/lib/useTelegramInitData';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 import MarkdownText from '@/components/MarkdownText';
@@ -36,8 +35,7 @@ export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
-  const { access, requestAccess, requestStatus } = useAccessCheck();
+  const { authHeaders, isTelegramReady, authError, access, requestAccess, requestStatus } = useAccessCheck();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);

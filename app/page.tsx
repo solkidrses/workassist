@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { useTelegramInitData } from '@/lib/useTelegramInitData';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 
@@ -42,8 +41,7 @@ export default function LibraryPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [shaking, setShaking] = useState(false);
-  const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
-  const { access, role, requestAccess, requestStatus } = useAccessCheck();
+  const { authHeaders, isTelegramReady, authError, access, role, requestAccess, requestStatus } = useAccessCheck();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedTag, setSelectedTag] = useState('all');

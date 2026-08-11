@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, X, Check, FileText, Image as ImageIcon, FileUp, Sparkles, Loader2 } from 'lucide-react';
-import { useTelegramInitData } from '@/lib/useTelegramInitData';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 
@@ -37,8 +36,7 @@ type Category = {
 
 export default function UploadPage() {
   const router = useRouter();
-  const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
-  const { access, role, requestAccess, requestStatus } = useAccessCheck();
+  const { authHeaders, isTelegramReady, authError, access, role, requestAccess, requestStatus } = useAccessCheck();
 
   const [text, setText] = useState('');
   const [photoBase64, setPhotoBase64] = useState<string>('');

@@ -11,6 +11,9 @@ type AccessContextValue = {
   role: UserRole;
   requestAccess: () => Promise<void>;
   requestStatus: string | null;
+  authHeaders: Record<string, string>;
+  isTelegramReady: boolean;
+  authError: string | null;
 };
 
 const AccessContext = createContext<AccessContextValue>({
@@ -18,6 +21,9 @@ const AccessContext = createContext<AccessContextValue>({
   role: null,
   requestAccess: async () => {},
   requestStatus: null,
+  authHeaders: {},
+  isTelegramReady: false,
+  authError: null,
 });
 
 export function useAccessCheck(): AccessContextValue {
@@ -81,7 +87,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, [JSON.stringify(authHeaders)]);
 
   return (
-    <AccessContext.Provider value={{ access, role, requestAccess, requestStatus }}>
+    <AccessContext.Provider value={{ access, role, requestAccess, requestStatus, authHeaders, isTelegramReady, authError }}>
       {children}
     </AccessContext.Provider>
   );

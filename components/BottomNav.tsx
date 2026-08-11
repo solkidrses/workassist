@@ -20,30 +20,16 @@ export default function BottomNav() {
   ];
 
   return (
-    <>
-      <div className="panel-fixed bottom-nav">
-        {items.map(({ href, label, icon: Icon, match }) => {
-          const isActive = match(pathname);
-          return (
-            <Link key={href} href={href} className={`bottom-nav-link ${isActive ? 'active' : ''}`}>
-              <Icon size={22} />
-              <span style={{ fontSize: 10, marginTop: 4, fontWeight: isActive ? 500 : 400 }}>{label}</span>
-            </Link>
-          );
-        })}
-      </div>
-      <div
-        style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 'max(env(safe-area-inset-bottom), 0px)',
-          background: 'var(--bg-main)',
-          zIndex: 9,
-          pointerEvents: 'none',
-        }}
-      />
-    </>
+    <div className="panel-fixed bottom-nav">
+      {items.map(({ href, label, icon: Icon, match }) => {
+        const isActive = match(pathname);
+        return (
+          <Link key={href} href={href} className={`bottom-nav-link ${isActive ? 'active' : ''}`}>
+            <Icon size={22} />
+            <span style={{ fontSize: 10, marginTop: 4, fontWeight: isActive ? 500 : 400 }}>{label}</span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
