@@ -6,6 +6,10 @@ type TelegramWebApp = {
   initData?: string;
   ready: () => void;
   expand?: () => void;
+  setBackgroundColor?: (color: string) => void;
+  setBottomBarColor?: (color: string) => void;
+  setHeaderColor?: (color: string) => void;
+  disableVerticalSwipes?: () => void;
 };
 
 declare global {
@@ -43,6 +47,10 @@ export function useTelegramInitData() {
 
       webApp.ready();
       webApp.expand?.();
+      webApp.setBackgroundColor?.('#09090b');
+      webApp.setBottomBarColor?.('#09090b');
+      webApp.setHeaderColor?.('#09090b');
+      webApp.disableVerticalSwipes?.();
 
       const nextInitData = webApp.initData?.trim() ?? '';
       if (nextInitData) {
