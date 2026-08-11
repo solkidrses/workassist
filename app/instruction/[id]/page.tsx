@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit2, Trash2, Save, Calendar, X } from 'lucide-react';
 import { useAccessCheck } from '@/lib/AccessProvider';
+import { CategorySelect } from '@/components/CategorySelect';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 import MarkdownText from '@/components/MarkdownText';
 
@@ -264,18 +265,15 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
               disabled={saving || !!authError}
             />
 
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-muted)' }}>Категория (Тег)</label>
-            <select 
-              className="input-field" 
-              value={editTag}
-              onChange={(e) => setEditTag(e.target.value)}
-              style={{ marginBottom: 16, backgroundColor: 'var(--bg-user-message)' }}
-              disabled={saving || !!authError}
-            >
-              {tagOptions.map((t: { id: string; name: string; slug: string }) => (
-                <option key={t.id} value={t.slug}>{t.name}</option>
-              ))}
-            </select>
+            <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-muted)' }}>Категория</label>
+            <div style={{ marginBottom: 16 }}>
+              <CategorySelect
+                categories={tagOptions.map((t: { id: string; name: string; slug: string }) => ({ id: t.id, name: t.name, slug: t.slug, color: null, icon: null }))}
+                value={editTag}
+                onChange={setEditTag}
+                disabled={saving || !!authError}
+              />
+            </div>
 
             <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-muted)' }}>Краткое содержание</label>
             <textarea 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Folder, Check, UserCog } from 'lucide-react';
 import { useAccessCheck } from '@/lib/AccessProvider';
+import { CategorySelect } from '@/components/CategorySelect';
 
 type Category = {
   id: string;
@@ -559,30 +560,41 @@ export default function AdminPage() {
         <div
           onClick={() => { setDeleteTarget(null); setReassignTo(''); }}
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200,
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200,
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+            animation: 'fade-in 0.15s ease both',
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             className="zinc-card"
-            style={{ maxWidth: 400, width: '100%', borderLeft: '3px solid var(--danger)', animation: 'fade-in-up 0.2s var(--ease-out) both' }}
+            style={{ maxWidth: 400, width: '100%', borderLeft: '3px solid var(--danger)', animation: 'fade-in-up 0.25s var(--ease-out) both' }}
           >
-            <h3 style={{ margin: '0 0 8px', fontSize: 17 }}>Удалить «{deleteTarget.name}»?</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: 'var(--danger-transparent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Trash2 size={18} style={{ color: 'var(--danger)' }} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>Удалить «{deleteTarget.name}»?</h3>
+            </div>
             <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
               Инструкции в этой категории нужно куда-то перенести. Выберите категорию для переноса или удалите без переноса.
             </p>
-            <select
-              className="input-field"
-              value={reassignTo}
-              onChange={(e) => setReassignTo(e.target.value)}
-              style={{ marginBottom: 16, backgroundColor: 'var(--bg-user-message)' }}
-            >
-              <option value="">Удалить без переноса</option>
-              {categories.filter(c => c.id !== deleteTarget.id).map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <div style={{ marginBottom: 16 }}>
+              <CategorySelect
+                categories={[
+                  { id: '', name: 'Удалить без переноса', slug: '', color: null, icon: null },
+                  ...categories.filter(c => c.id !== deleteTarget.id).map(c => ({ id: c.id, name: c.name, slug: c.id, color: c.color, icon: c.icon }))
+                ]}
+                value={reassignTo}
+                onChange={setReassignTo}
+                placeholder="Удалить без переноса"
+              />
+            </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={handleDelete}
@@ -591,6 +603,7 @@ export default function AdminPage() {
                   flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none',
                   backgroundColor: 'var(--danger)', color: '#fff', fontWeight: 600,
                   cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1, fontSize: 14,
+                  transition: 'opacity 0.2s ease',
                 }}
               >
                 {deleting ? 'Удаление...' : 'Удалить'}
@@ -600,6 +613,7 @@ export default function AdminPage() {
                 style={{
                   padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border-subtle)',
                   backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
+                  transition: 'border-color 0.2s ease, color 0.2s ease',
                 }}
               >
                 Отмена

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, X, Check, FileText, Image as ImageIcon, FileUp, Sparkles, Loader2 } from 'lucide-react';
 import { useAccessCheck } from '@/lib/AccessProvider';
+import { CategorySelect } from '@/components/CategorySelect';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 
 type UploadResult = {
@@ -272,17 +273,12 @@ export default function UploadPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-muted)' }}>Категория</label>
-                  <select
-                    className="input-field"
+                  <CategorySelect
+                    categories={categories}
                     value={selectedTag}
-                    onChange={(e) => setSelectedTag(e.target.value)}
-                    style={{ backgroundColor: 'var(--bg-user-message)' }}
+                    onChange={setSelectedTag}
                     disabled={!isTelegramReady || !!authError}
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.slug}>{c.name}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
             </div>
