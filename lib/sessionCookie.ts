@@ -4,7 +4,9 @@ const COOKIE_NAME = 'wa_session';
 const MAX_AGE_SECONDS = 86400; // 24h
 
 function getKey(): string {
-  return process.env.BOT_TOKEN || 'fallback-dev-key';
+  const key = process.env.BOT_TOKEN;
+  if (!key) throw new Error('BOT_TOKEN is required for session signing');
+  return key;
 }
 
 export function signSession(telegramId: string): string {
@@ -34,14 +36,18 @@ export function verifySession(cookieHeader: string | null): { ok: boolean; teleg
 
   const expectedSig = crypto.createHmac('sha256', getKey()).update(`${telegramId}:${expires}`).digest('hex');
 
-  if (sig !== expectedSig) return { ok: false };
+  const sigBuf = Buffer.from(sig, 'hex');
+  const expectedBuf = Buffer.from(expectedSig, 'hex');
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+    return { ok: false };
+  }
 
   return { ok: true, telegramId };
 }
 
 export function sessionCookieHeader(telegramId: string): string {
   const value = signSession(telegramId);
-  return `${COOKIE_NAME}=${value}; HttpOnly; Path=/; Max-Age=${MAX_AGE_SECONDS}; SameSite=Lax`;
+  return `${COOKIE_NAME}=${value}; HttpOnly; Path=/; Max-Age=${MAX_AGE_SECONDS}; SameSite=None; Secure`;
 }
 
 export { COOKIE_NAME };

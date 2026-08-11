@@ -185,7 +185,20 @@ export default function LibraryPage() {
     fetchInstructions();
   };
 
-  if (access !== 'ok' && access !== 'loading') {
+  if (access !== 'ok') {
+    if (access === 'loading') {
+      return (
+        <div className="page-shell">
+          <div className="status-banner pending">
+            <div className="pulse-dot" />
+            <div>
+              <div className="status-banner-title">Проверка доступа</div>
+              <div className="status-banner-text">Подтверждаю вашу сессию...</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return <NoAccessScreen access={access} requestAccess={requestAccess} requestStatus={requestStatus} />;
   }
 
