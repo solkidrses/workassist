@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     if (filename.endsWith('.txt')) {
       text = buffer.toString('utf-8');
     } else if (filename.endsWith('.docx')) {
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      const uploadsDir = path.join(process.cwd(), 'data', 'uploads');
       await mkdir(uploadsDir, { recursive: true });
 
       const result = await mammoth.convertToHtml(

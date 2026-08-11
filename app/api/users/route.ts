@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, authorizeRequest } from '@/lib/requestAuth';
+import { sessionCookieHeader } from '@/lib/sessionCookie';
 
 type UserListRow = {
   id: string;
@@ -21,7 +22,9 @@ export async function GET(req: Request) {
     if (!auth.ok) {
       return NextResponse.json({ error: 'Unauthorized', code: auth.code }, { status: 403 });
     }
-    return NextResponse.json({ success: true, data: { telegramId: auth.user!.telegramId, role: auth.user!.role, status: auth.user!.status } });
+    const res = NextResponse.json({ success: true, data: { telegramId: auth.user!.telegramId, role: auth.user!.role, status: auth.user!.status } });
+    res.headers.set('Set-Cookie', sessionCookieHeader(auth.user!.telegramId));
+    return res;
   }
 
   const adminCheck = await requireAdmin(req);

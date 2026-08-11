@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, 'base64');
       const filename = `${crypto.randomUUID()}.jpg`;
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      const uploadsDir = path.join(process.cwd(), 'data', 'uploads');
 
       try {
         await mkdir(uploadsDir, { recursive: true });
