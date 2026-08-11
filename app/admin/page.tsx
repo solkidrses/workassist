@@ -36,6 +36,8 @@ export default function AdminPage() {
   const [reassignTo, setReassignTo] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  const [metrics, setMetrics] = useState<{ cpu: number; memTotal: number; memUsed: number; memPercent: number; diskTotal: number; diskUsed: number; diskFree: number; diskPercent: number } | null>(null);
+
   const fetchCategories = useCallback(async () => {
     if (!isTelegramReady) return;
     setLoading(true);
@@ -58,6 +60,20 @@ export default function AdminPage() {
     if (!isTelegramReady) return;
     fetchCategories();
   }, [isTelegramReady, JSON.stringify(authHeaders), fetchCategories]);
+
+  useEffect(() => {
+    if (!isTelegramReady) return;
+    const fetchMetrics = async () => {
+      try {
+        const res = await fetch('/api/admin/metrics', { headers: authHeaders, cache: 'no-store' });
+        const data = await res.json();
+        if (data.success) setMetrics(data.data);
+      } catch {}
+    };
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 5000);
+    return () => clearInterval(interval);
+  }, [isTelegramReady, JSON.stringify(authHeaders)]);
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
@@ -178,6 +194,43 @@ export default function AdminPage() {
       )}
 
       <div className="page-content">
+        {metrics && (
+          <div className="zinc-card" style={{ marginBottom: 16, padding: 14 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Сервер
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                  <span>CPU</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{metrics.cpu}%</span>
+                </div>
+                <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${metrics.cpu}%`, background: metrics.cpu > 80 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                  <span>ОЗУ</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{metrics.memUsed} / {metrics.memTotal} МБ · {metrics.memPercent}%</span>
+                </div>
+                <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${metrics.memPercent}%`, background: metrics.memPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                  <span>Диск</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{(metrics.diskFree / 1073741824).toFixed(1)} ГБ свободно · {metrics.diskPercent}% занято</span>
+                </div>
+                <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${metrics.diskPercent}%`, background: metrics.diskPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Categories Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{categories.length} категории</span>
