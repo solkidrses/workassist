@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { authorizeRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { rateLimit } from '@/lib/rateLimit';
 
 type SearchResultRow = {
   id: string;
@@ -19,6 +20,11 @@ export async function GET(req: Request) {
     const auth = await authorizeRequest(req);
     if (!auth.ok) {
       return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
+    }
+
+    const rl = rateLimit(`search:${auth.user?.telegramId || 'anon'}`, 30, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Слишком много запросов. Попробуйте позже.' }, { status: 429 });
     }
 
     const { searchParams } = new URL(req.url);

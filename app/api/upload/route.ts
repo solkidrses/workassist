@@ -52,8 +52,14 @@ export async function POST(req: Request) {
 
     // If photo exists, save locally to public/uploads/
     if (photoBase64) {
+      const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
       const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, 'base64');
+      
+      if (buffer.length > MAX_PHOTO_SIZE) {
+        return NextResponse.json({ error: 'Фото слишком большое (макс. 10 МБ)' }, { status: 400 });
+      }
+      
       const filename = `${crypto.randomUUID()}.jpg`;
       const uploadsDir = path.join(process.cwd(), 'data', 'uploads');
 

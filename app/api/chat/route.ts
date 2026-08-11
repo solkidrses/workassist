@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { authorizeRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { rateLimit } from '@/lib/rateLimit';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
@@ -32,6 +33,11 @@ export async function POST(req: Request) {
     const auth = await authorizeRequest(req);
     if (!auth.ok) {
       return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
+    }
+
+    const rl = rateLimit(`chat:${auth.user?.telegramId || 'anon'}`, 20, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Слишком много запросов. Попробуйте позже.' }, { status: 429 });
     }
 
     const { messages, sessionId } = await req.json() as { messages: ChatMessage[]; sessionId?: string };
@@ -106,12 +112,19 @@ export async function POST(req: Request) {
             .filter(w => w.length > 2 && !stopWords.has(w));
 
           if (words.length > 0) {
-            const conditions = words.map(w => `title ILIKE '%${w}%' OR summary ILIKE '%${w}%' OR "fullText" ILIKE '%${w}%'`).join(' OR ');
+            const likeConditions = words.map(() => `title ILIKE $1 OR summary ILIKE $1 OR "fullText" ILIKE $1`).join(' OR ');
+            const params = words.map(w => `%${w}%`);
+            const paramPlaceholders = words.map((_, i) => `$${i + 1}`).join(', ');
+            const conditions = words.map((_, i) => 
+              `(title ILIKE $${i + 1} OR summary ILIKE $${i + 1} OR "fullText" ILIKE $${i + 1})`
+            ).join(' OR ');
+            
             const rawResults = await prisma.$queryRawUnsafe<RetrievedInstruction[]>(
               `SELECT id, title, summary, "fullText", tag, "createdAt", "photoUrl"
                FROM instructions
                WHERE ${conditions}
-               LIMIT 5`
+               LIMIT 5`,
+              ...params
             );
             results = rawResults;
           }

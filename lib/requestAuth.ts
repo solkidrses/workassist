@@ -54,8 +54,8 @@ export async function authorizeRequest(req: Request): Promise<AuthResult> {
     return { ok: false, code: 'INVALID' };
   }
 
-  const botTokenHeader = req.headers.get('x-bot-token');
-  if (botTokenHeader && botTokenHeader === botToken) {
+  const internalKey = req.headers.get('x-internal-api-key');
+  if (internalKey && internalKey === process.env.INTERNAL_API_KEY) {
     return {
       ok: true,
       user: { telegramId: 'bot', role: 'admin', status: 'approved', username: 'bot', firstName: 'Bot' },

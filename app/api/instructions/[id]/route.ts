@@ -66,7 +66,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Regenerate embedding if text fields changed and API key is available
     const hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
-    let embeddingClause = '';
+    let embeddingStr: string | null = null;
 
     if (hasEmbeddingsKey && (title || summary || fullText)) {
       try {
@@ -77,17 +77,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           input: embeddingInput,
         });
         const embedding = embeddingResponse.data[0].embedding;
-        const embeddingStr = `[${embedding.join(',')}]`;
-        embeddingClause = `, embedding = '${embeddingStr}'::vector`;
+        embeddingStr = `[${embedding.join(',')}]`;
       } catch (e) {
         console.error('Embedding update error:', e);
       }
     }
 
-    await prisma.$executeRawUnsafe(
-      `UPDATE instructions SET title = $1, summary = $2, "fullText" = $3, tag = $4, "updatedAt" = NOW()${embeddingClause} WHERE id = $5`,
-      title || 'Untitled', summary || '', fullText || '', tag || 'general', id
-    );
+    if (embeddingStr) {
+      await prisma.$executeRawUnsafe(
+        `UPDATE instructions SET title = $1, summary = $2, "fullText" = $3, tag = $4, embedding = $5::vector, "updatedAt" = NOW() WHERE id = $6`,
+        title || 'Untitled', summary || '', fullText || '', tag || 'general', embeddingStr, id
+      );
+    } else {
+      await prisma.$executeRawUnsafe(
+        `UPDATE instructions SET title = $1, summary = $2, "fullText" = $3, tag = $4, "updatedAt" = NOW() WHERE id = $5`,
+        title || 'Untitled', summary || '', fullText || '', tag || 'general', id
+      );
+    }
 
     const updated = await prisma.$queryRaw<InstructionUpdateRow[]>`
       SELECT id, title, summary, "fullText", tag, "updatedAt"

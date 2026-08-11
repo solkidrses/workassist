@@ -144,7 +144,7 @@ bot.on("message:text", async (ctx) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-bot-token": process.env.BOT_TOKEN || "",
+        "x-internal-api-key": process.env.INTERNAL_API_KEY || "",
       },
       body: JSON.stringify({
         text,
