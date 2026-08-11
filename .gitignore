@@ -44,3 +44,6 @@ next-env.d.ts
 
 # uploaded files (private storage)
 /data
+
+# deploy scripts with secrets
+*.py
