@@ -41,6 +41,8 @@ COPY --from=builder /app/node_modules/pg ./node_modules/pg
 COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
 COPY --from=builder /app/package.json ./package.json
 
+RUN ln -s /app/node_modules/prisma/build/index.js /app/node_modules/.bin/prisma
+
 RUN mkdir -p /app/data/uploads
 RUN chown -R nextjs:nodejs /app
 
