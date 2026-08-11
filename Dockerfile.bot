@@ -1,0 +1,26 @@
+FROM node:22-slim AS base
+
+FROM base AS deps
+WORKDIR /app
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma
+RUN npm ci --include=dev
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json ./
+COPY prisma ./prisma
+COPY bot ./bot
+
+RUN npx prisma generate
+
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 --gid nodejs botuser
+RUN chown -R botuser:nodejs /app
+
+USER botuser
+
+CMD ["npx", "tsx", "bot/main.ts"]
