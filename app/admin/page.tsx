@@ -133,13 +133,12 @@ export default function AdminPage() {
       const res = await fetch('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify({ name: newName.trim(), icon: newIcon.trim() || undefined, color: newColor.trim() || undefined }),
+        body: JSON.stringify({ name: newName.trim(), icon: undefined, color: newColor.trim() || undefined }),
       });
       const data = await res.json();
       if (data.success) {
         setCategories(prev => [...prev, data.data]);
         setNewName('');
-        setNewIcon('');
         setNewColor('');
         setShowAddForm(false);
       } else {
@@ -157,11 +156,11 @@ export default function AdminPage() {
       const res = await fetch(`/api/categories/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify({ name: editName.trim(), icon: editIcon.trim() || null, color: editColor.trim() || null }),
+        body: JSON.stringify({ name: editName.trim(), icon: null, color: editColor.trim() || null }),
       });
       const data = await res.json();
       if (data.success) {
-        setCategories(prev => prev.map(c => c.id === id ? { ...c, name: editName.trim(), icon: editIcon.trim() || null, color: editColor.trim() || null } : c));
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, name: editName.trim(), icon: null, color: editColor.trim() || null } : c));
         setEditingId(null);
       } else {
         setError(data.error || 'Ошибка сохранения');
@@ -342,24 +341,19 @@ export default function AdminPage() {
                   onChange={(e) => setNewName(e.target.value)}
                   style={{ marginBottom: 12 }}
                 />
-                <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-muted)' }}>Иконка (эмодзи, опционально)</label>
-                <input
-                  className="input-field"
-                  type="text"
-                  placeholder="🐳"
-                  value={newIcon}
-                  onChange={(e) => setNewIcon(e.target.value)}
-                  style={{ marginBottom: 12 }}
-                />
-                <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-muted)' }}>Цвет (HEX, опционально)</label>
-                <input
-                  className="input-field"
-                  type="text"
-                  placeholder="#ff7c3b"
-                  value={newColor}
-                  onChange={(e) => setNewColor(e.target.value)}
-                  style={{ marginBottom: 16 }}
-                />
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: 'var(--text-muted)' }}>Цвет</label>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                  {['#ff7c3b', '#3b82f6', '#22c55e', '#eab308', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e'].map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setNewColor(newColor === c ? '' : c)}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, border: newColor === c ? '2px solid var(--text-main)' : '2px solid var(--border-subtle)',
+                        background: c, cursor: 'pointer', flexShrink: 0, transition: 'border-color 0.15s ease',
+                      }}
+                    />
+                  ))}
+                </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     onClick={handleAdd}
@@ -374,7 +368,7 @@ export default function AdminPage() {
                     {adding ? 'Создание...' : 'Создать'}
                   </button>
                   <button
-                    onClick={() => { setShowAddForm(false); setNewName(''); setNewIcon(''); setNewColor(''); }}
+                    onClick={() => { setShowAddForm(false); setNewName(''); setNewColor(''); }}
                     style={{
                       padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border-subtle)',
                       backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
@@ -401,23 +395,18 @@ export default function AdminPage() {
                       onChange={(e) => setEditName(e.target.value)}
                       style={{ marginBottom: 8 }}
                     />
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                      <input
-                        className="input-field"
-                        type="text"
-                        placeholder="Иконка"
-                        value={editIcon}
-                        onChange={(e) => setEditIcon(e.target.value)}
-                        style={{ flex: 1 }}
-                      />
-                      <input
-                        className="input-field"
-                        type="text"
-                        placeholder="Цвет"
-                        value={editColor}
-                        onChange={(e) => setEditColor(e.target.value)}
-                        style={{ flex: 1 }}
-                      />
+                    <label style={{ display: 'block', marginBottom: 6, fontSize: 12, color: 'var(--text-muted)' }}>Цвет</label>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                      {['#ff7c3b', '#3b82f6', '#22c55e', '#eab308', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e'].map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setEditColor(editColor === c ? '' : c)}
+                          style={{
+                            width: 28, height: 28, borderRadius: 6, border: editColor === c ? '2px solid var(--text-main)' : '2px solid var(--border-subtle)',
+                            background: c, cursor: 'pointer', flexShrink: 0, transition: 'border-color 0.15s ease',
+                          }}
+                        />
+                      ))}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => handleSave(cat.id)} style={{ background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: '#000', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
