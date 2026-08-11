@@ -21,6 +21,8 @@ read -rp "Bot Token (from BotFather): " BOT_TOKEN
 read -rp "DeepSeek API Key: " DEEPSEEK_KEY
 read -rp "Embeddings API Key (Enter to skip — text search fallback): " EMBED_KEY
 read -rp "Email for SSL certificates: " SSL_EMAIL
+read -rp "SSH port (current, to avoid lockout): " SSH_PORT
+SSH_PORT=${SSH_PORT:-22}
 INTERNAL_KEY=$(openssl rand -hex 32)
 DB_PASS=$(openssl rand -hex 16)
 
@@ -31,6 +33,7 @@ echo -e "  Admin ID:     $ADMIN_ID"
 echo -e "  App dir:      $APP_DIR"
 echo -e "  Repo:         $REPO_URL"
 echo -e "  SSL email:    $SSL_EMAIL"
+echo -e "  SSH port:     $SSH_PORT"
 echo -e "  Embeddings:   ${EMBED_KEY:-disabled (text search fallback)}"
 echo
 read -rp "Continue? (y/n): " CONFIRM
@@ -129,11 +132,11 @@ echo -e "${GREEN}  SSL certificate installed (auto-renewal enabled)${NC}"
 
 # --- Firewall ---
 echo -e "${CYAN}Configuring firewall...${NC}"
-sudo ufw allow 22/tcp
+sudo ufw allow ${SSH_PORT}/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 sudo ufw --force enable
-echo -e "${GREEN}  Firewall: 22, 80, 443 open${NC}"
+echo -e "${GREEN}  Firewall: ${SSH_PORT}, 80, 443 open${NC}"
 
 # --- Build & start containers ---
 echo -e "${CYAN}Building Docker containers...${NC}"
