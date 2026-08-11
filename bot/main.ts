@@ -1,6 +1,7 @@
 import { Bot, InlineKeyboard } from "grammy";
 import dotenv from "dotenv";
 import path from "path";
+import crypto from "crypto";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -25,33 +26,92 @@ type UserRow = {
   telegramId: string;
   role: string;
   status: string;
+  username: string | null;
+  firstName: string | null;
 };
 
-async function isUserApproved(telegramId: number): Promise<boolean> {
-  if (ADMIN_TELEGRAM_ID && String(telegramId) === ADMIN_TELEGRAM_ID) return true;
-
+async function getUser(telegramId: number): Promise<UserRow | null> {
+  if (ADMIN_TELEGRAM_ID && String(telegramId) === ADMIN_TELEGRAM_ID) {
+    return { telegramId: String(telegramId), role: 'admin', status: 'approved', username: null, firstName: null };
+  }
   try {
     const rows = await prisma.$queryRaw<UserRow[]>`
-      SELECT "telegramId", role, status FROM users WHERE "telegramId" = ${String(telegramId)} LIMIT 1
+      SELECT "telegramId", role, status, username, "firstName"
+      FROM users WHERE "telegramId" = ${String(telegramId)} LIMIT 1
     `;
-    return rows.length > 0 && rows[0].status === 'approved';
+    return rows.length > 0 ? rows[0] : null;
   } catch (e) {
-    console.error('DB check failed, blocking user:', e);
-    return false;
+    console.error('DB check failed:', e);
+    return null;
+  }
+}
+
+async function notifyAdmin(telegramId: string, username: string | null, firstName: string | null) {
+  if (!ADMIN_TELEGRAM_ID) return;
+  const display = firstName || (username ? `@${username}` : telegramId);
+  const text = `🔔 Новая заявка на доступ\n\nПользователь: ${display}\nID: ${telegramId}${username ? `\nUsername: @${username}` : ''}`;
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '✅ Одобрить', callback_data: `approve:${telegramId}` },
+        { text: '❌ Отклонить', callback_data: `reject:${telegramId}` },
+      ],
+    ],
+  };
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: ADMIN_TELEGRAM_ID, text, reply_markup: keyboard }),
+    });
+  } catch (e) {
+    console.error('Failed to notify admin:', e);
   }
 }
 
 bot.use(async (ctx, next) => {
   if (!ctx.from) return;
-  const approved = await isUserApproved(ctx.from.id);
-  if (!approved) {
-    console.log(`Blocked user ${ctx.from.id}`);
-    if (ctx.message) {
-      await ctx.reply("У вас нет доступа. Откройте Mini App и запросите доступ у администратора.");
+  const user = await getUser(ctx.from.id);
+
+  if (user && user.status === 'approved') {
+    return await next();
+  }
+
+  if (!user) {
+    const id = crypto.randomUUID();
+    const telegramId = String(ctx.from.id);
+    const username = ctx.from.username || null;
+    const firstName = ctx.from.first_name || null;
+    try {
+      await prisma.$executeRaw`
+        INSERT INTO users (id, "telegramId", username, "firstName", role, status, "createdAt", "updatedAt")
+        VALUES (${id}, ${telegramId}, ${username}, ${firstName}, 'viewer', 'pending', NOW(), NOW())
+        ON CONFLICT ("telegramId") DO NOTHING
+      `;
+    } catch (e) {
+      console.error('Failed to create pending user:', e);
     }
+    await notifyAdmin(telegramId, username, firstName);
+    await ctx.reply("У вас нет доступа. Заявка отправлена администратору. Ожидайте одобрения.");
     return;
   }
-  await next();
+
+  if (user.status === 'pending') {
+    await ctx.reply("Ваша заявка на рассмотрении. Ожидайте одобрения администратора.");
+    return;
+  }
+
+  if (user.status === 'rejected') {
+    await prisma.$executeRaw`
+      UPDATE users SET status = 'pending', "updatedAt" = NOW()
+      WHERE "telegramId" = ${String(ctx.from.id)}
+    `;
+    await notifyAdmin(String(ctx.from.id), ctx.from.username || null, ctx.from.first_name || null);
+    await ctx.reply("Ваша заявка была отклонена. Заявка отправлена повторно. Ожидайте одобрения.");
+    return;
+  }
+
+  return await next();
 });
 
 bot.command("start", (ctx) => {
@@ -122,6 +182,8 @@ bot.callbackQuery(/^approve:(.+)$/, async (ctx) => {
     await prisma.$executeRaw`UPDATE users SET status = 'approved', "updatedAt" = NOW() WHERE "telegramId" = ${telegramId}`;
     await ctx.editMessageText(`✅ Пользователь ${telegramId} одобрен.`);
     await ctx.answerCallbackQuery({ text: "Одобрено" });
+    const keyboard = new InlineKeyboard().webApp("Открыть Mini App", TMA_URL);
+    await bot.api.sendMessage(telegramId, "✅ Вам одобрен доступ! Теперь вы можете пользоваться ботом и Mini App.", { reply_markup: keyboard });
   } catch (e) {
     console.error('Approve error:', e);
     await ctx.answerCallbackQuery({ text: "Ошибка" });
@@ -134,6 +196,7 @@ bot.callbackQuery(/^reject:(.+)$/, async (ctx) => {
     await prisma.$executeRaw`UPDATE users SET status = 'rejected', "updatedAt" = NOW() WHERE "telegramId" = ${telegramId}`;
     await ctx.editMessageText(`❌ Пользователь ${telegramId} отклонён.`);
     await ctx.answerCallbackQuery({ text: "Отклонено" });
+    await bot.api.sendMessage(telegramId, "❌ Ваша заявка на доступ отклонена администратором.");
   } catch (e) {
     console.error('Reject error:', e);
     await ctx.answerCallbackQuery({ text: "Ошибка" });
