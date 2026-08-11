@@ -37,7 +37,7 @@ echo -e "  SSH port:     $SSH_PORT"
 echo -e "  Embeddings:   ${EMBED_KEY:-disabled (text search fallback)}"
 echo
 read -rp "Continue? (y/n): " CONFIRM
-[[ "$CONFIRM" == "y" ]] || exit 0
+[[ "${CONFIRM,,}" == "y" ]] || exit 0
 
 # --- Install packages (skip if already installed) ---
 echo -e "${CYAN}Checking packages...${NC}"
