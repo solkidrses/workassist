@@ -3,7 +3,7 @@
 import { Send, Trash2, Plus, MessageSquare, X, Trash } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
-import { useAccessCheck } from '@/lib/useAccessCheck';
+import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 import MarkdownText from '@/components/MarkdownText';
 

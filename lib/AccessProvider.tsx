@@ -1,12 +1,30 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
 
 type AccessState = 'loading' | 'ok' | 'no_access' | 'pending' | 'rejected';
 type UserRole = 'admin' | 'viewer' | null;
 
-export function useAccessCheck(): { access: AccessState; role: UserRole; requestAccess: () => Promise<void>; requestStatus: string | null } {
+type AccessContextValue = {
+  access: AccessState;
+  role: UserRole;
+  requestAccess: () => Promise<void>;
+  requestStatus: string | null;
+};
+
+const AccessContext = createContext<AccessContextValue>({
+  access: 'loading',
+  role: null,
+  requestAccess: async () => {},
+  requestStatus: null,
+});
+
+export function useAccessCheck(): AccessContextValue {
+  return useContext(AccessContext);
+}
+
+export function AccessProvider({ children }: { children: React.ReactNode }) {
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
   const [access, setAccess] = useState<AccessState>('loading');
   const [role, setRole] = useState<UserRole>(null);
@@ -17,28 +35,18 @@ export function useAccessCheck(): { access: AccessState; role: UserRole; request
 
     const check = async () => {
       try {
-        const res = await fetch('/api/instructions', { headers: authHeaders, cache: 'no-store' });
-        if (res.ok) {
+        const res = await fetch('/api/users?me=1', { headers: authHeaders, cache: 'no-store' });
+        const data = await res.json().catch(() => null);
+
+        if (res.ok && data?.success) {
+          setRole(data.data.role === 'admin' ? 'admin' : 'viewer');
           setAccess('ok');
-          const roleRes = await fetch('/api/users?me=1', { headers: authHeaders, cache: 'no-store' });
-          if (roleRes.ok) {
-            const roleData = await roleRes.json();
-            if (roleData.success && roleData.data?.role) {
-              setRole(roleData.data.role);
-            } else {
-              setRole('viewer');
-            }
-          } else {
-            setRole('viewer');
-          }
-        } else if (res.status === 403) {
-          const data = await res.json();
-          if (data.code === 'PENDING') setAccess('pending');
-          else if (data.code === 'REJECTED') setAccess('rejected');
-          else setAccess('no_access');
-        } else {
-          setAccess('no_access');
+          return;
         }
+
+        if (data?.code === 'PENDING') setAccess('pending');
+        else if (data?.code === 'REJECTED') setAccess('rejected');
+        else setAccess('no_access');
       } catch {
         setAccess('no_access');
       }
@@ -51,7 +59,7 @@ export function useAccessCheck(): { access: AccessState; role: UserRole; request
     if (authError) setAccess('no_access');
   }, [authError]);
 
-  const requestAccess = async () => {
+  const requestAccess = useCallback(async () => {
     try {
       const res = await fetch('/api/access-request', {
         method: 'POST',
@@ -67,7 +75,11 @@ export function useAccessCheck(): { access: AccessState; role: UserRole; request
     } catch {
       setRequestStatus('Ошибка сети');
     }
-  };
+  }, [JSON.stringify(authHeaders)]);
 
-  return { access, role, requestAccess, requestStatus };
+  return (
+    <AccessContext.Provider value={{ access, role, requestAccess, requestStatus }}>
+      {children}
+    </AccessContext.Provider>
+  );
 }

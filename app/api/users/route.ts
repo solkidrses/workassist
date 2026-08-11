@@ -19,9 +19,9 @@ export async function GET(req: Request) {
   if (me) {
     const auth = await authorizeRequest(req);
     if (!auth.ok) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized', code: auth.code }, { status: 403 });
     }
-    return NextResponse.json({ success: true, data: { telegramId: auth.user!.telegramId, role: auth.user!.role, status: 'approved' } });
+    return NextResponse.json({ success: true, data: { telegramId: auth.user!.telegramId, role: auth.user!.role, status: auth.user!.status } });
   }
 
   const adminCheck = await requireAdmin(req);

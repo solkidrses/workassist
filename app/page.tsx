@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
-import { useAccessCheck } from '@/lib/useAccessCheck';
+import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 
 type Instruction = {

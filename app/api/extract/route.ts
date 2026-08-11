@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { authorizeRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { requireAdmin } from '@/lib/requestAuth';
 import { cleanupText } from '@/lib/textCleanup';
 import mammoth from 'mammoth';
 import TurndownService from 'turndown';
@@ -26,10 +26,8 @@ const EXT_BY_MIME: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
-    const auth = await authorizeRequest(req);
-    if (!auth.ok) {
-      return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
-    }
+    const adminCheck = await requireAdmin(req);
+    if (adminCheck instanceof NextResponse) return adminCheck;
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;

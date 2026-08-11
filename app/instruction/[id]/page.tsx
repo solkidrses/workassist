@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit2, Trash2, Save, Calendar, X } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
+import { useAccessCheck } from '@/lib/AccessProvider';
+import { NoAccessScreen } from '@/components/NoAccessScreen';
 import MarkdownText from '@/components/MarkdownText';
 
 type Instruction = {
@@ -23,6 +25,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const { id } = use(params);
   const router = useRouter();
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
+  const { access, role, requestAccess, requestStatus } = useAccessCheck();
 
   const [tagOptions, setTagOptions] = useState<{ id: string; name: string; slug: string }[]>([{ id: 'general', name: 'Общее', slug: 'general' }]);
   const [instruction, setInstruction] = useState<Instruction | null>(null);
@@ -144,6 +147,10 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
     }
   };
 
+  if (access !== 'ok' && access !== 'loading') {
+    return <NoAccessScreen access={access} requestAccess={requestAccess} requestStatus={requestStatus} />;
+  }
+
   if (loading) {
     if (!isTelegramReady && !authError) {
       return (
@@ -195,7 +202,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
           </h1>
         </div>
 
-        {!isEditing && (
+        {!isEditing && role === 'admin' && (
           <div style={{ display: 'flex', gap: 8 }}>
             <button 
               onClick={() => setIsEditing(true)} 

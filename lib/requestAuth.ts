@@ -10,6 +10,7 @@ type AuthResult = {
   user?: {
     telegramId: string;
     role: string;
+    status: string;
     username: string | null;
     firstName: string | null;
   };
@@ -44,7 +45,7 @@ export async function authorizeRequest(req: Request): Promise<AuthResult> {
   if (process.env.NODE_ENV !== 'production') {
     return {
       ok: true,
-      user: { telegramId: 'dev', role: 'admin', username: 'dev', firstName: 'Dev' },
+      user: { telegramId: 'dev', role: 'admin', status: 'approved', username: 'dev', firstName: 'Dev' },
     };
   }
 
@@ -57,7 +58,7 @@ export async function authorizeRequest(req: Request): Promise<AuthResult> {
   if (botTokenHeader && botTokenHeader === botToken) {
     return {
       ok: true,
-      user: { telegramId: 'bot', role: 'admin', username: 'bot', firstName: 'Bot' },
+      user: { telegramId: 'bot', role: 'admin', status: 'approved', username: 'bot', firstName: 'Bot' },
     };
   }
 
@@ -82,6 +83,7 @@ export async function authorizeRequest(req: Request): Promise<AuthResult> {
       user: {
         telegramId: telegramUser.id,
         role: 'admin',
+        status: 'approved',
         username: telegramUser.username,
         firstName: telegramUser.first_name,
       },
@@ -116,6 +118,7 @@ export async function authorizeRequest(req: Request): Promise<AuthResult> {
         user: {
           telegramId: user.telegramId,
           role: user.role,
+          status: user.status,
           username: user.username,
           firstName: user.firstName,
         },
@@ -134,27 +137,4 @@ export async function requireAdmin(req: Request): Promise<{ ok: true; user: Auth
     return NextResponse.json({ error: 'Admin access required', code: auth.code || 'NO_ACCESS' }, { status: 403 });
   }
   return { ok: true, user: auth.user };
-}
-
-export function isAuthorizedRequest(req: Request): boolean {
-  if (process.env.NODE_ENV !== 'production') {
-    return true;
-  }
-
-  const botToken = process.env.BOT_TOKEN;
-  if (!botToken) {
-    return false;
-  }
-
-  const botTokenHeader = req.headers.get('x-bot-token');
-  if (botTokenHeader && botTokenHeader === botToken) {
-    return true;
-  }
-
-  const initData = req.headers.get('x-telegram-init-data');
-  if (!initData) {
-    return false;
-  }
-
-  return verifyTelegramInitData(initData, botToken);
 }

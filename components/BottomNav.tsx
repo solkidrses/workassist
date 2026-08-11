@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Settings, Book, MessageSquare } from 'lucide-react';
-import { useAccessCheck } from '@/lib/useAccessCheck';
+import { useAccessCheck } from '@/lib/AccessProvider';
 
 export default function BottomNav() {
   const pathname = usePathname();

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Folder, Check, UserCog } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
-import { useAccessCheck } from '@/lib/useAccessCheck';
+import { useAccessCheck } from '@/lib/AccessProvider';
 
 type Category = {
   id: string;

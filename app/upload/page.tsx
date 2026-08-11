@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, X, Check, FileText, Image as ImageIcon, FileUp, Sparkles, Loader2 } from 'lucide-react';
 import { useTelegramInitData } from '@/lib/useTelegramInitData';
-import { useAccessCheck } from '@/lib/useAccessCheck';
+import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 
 type UploadResult = {
