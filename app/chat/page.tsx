@@ -1,6 +1,6 @@
 'use client'
 
-import { Send, Trash2, Plus, MessageSquare, X, Trash } from 'lucide-react';
+import { Send, Trash2, Plus, MessageSquare, X, Trash, Paperclip, Camera } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
@@ -18,6 +18,7 @@ type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  imagePreview?: string;
 }
 
 type ChatSession = {
@@ -35,7 +36,9 @@ export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const { authHeaders, isTelegramReady, authError, access, requestAccess, requestStatus } = useAccessCheck();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
@@ -190,14 +193,36 @@ export default function ChatPage() {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Фото слишком большое (макс. 10 МБ)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setPendingImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !pendingImage) || isLoading) return;
     if (!isTelegramReady) return;
 
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: input };
+    const userMessage: Message = { 
+      id: Date.now().toString(), 
+      role: 'user', 
+      content: input || '📷 Фото',
+      imagePreview: pendingImage || undefined,
+    };
     setMessages(prev => [...prev, userMessage]);
+    const imageToSend = pendingImage;
     setInput('');
+    setPendingImage(null);
     setIsLoading(true);
 
     const updatedMessages = [...messages, userMessage];
@@ -209,7 +234,11 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
           ...authHeaders,
         },
-        body: JSON.stringify({ messages: updatedMessages, sessionId: currentSessionId }),
+        body: JSON.stringify({ 
+          messages: updatedMessages.map(m => ({ role: m.role, content: m.content })), 
+          sessionId: currentSessionId,
+          imageBase64: imageToSend || undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -352,6 +381,14 @@ export default function ChatPage() {
               {m.role === 'user' && (
                 <div className="message-meta">Вы</div>
               )}
+              {m.imagePreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img 
+                  src={m.imagePreview} 
+                  alt="Фото" 
+                  style={{ width: '100%', maxWidth: 240, borderRadius: 8, marginBottom: 8, display: 'block' }}
+                />
+              )}
               <div className="message-text" style={{ whiteSpace: 'pre-wrap' }}>
                 {m.role === 'assistant' ? (
                   isLoading && idx === messages.length - 1 ? (
@@ -377,17 +414,48 @@ export default function ChatPage() {
       </div>
 
       <div className="panel-fixed composer-bar">
+        {pendingImage && (
+          <div style={{ marginBottom: 8, position: 'relative', display: 'inline-block' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={pendingImage} 
+              alt="Preview" 
+              style={{ height: 80, borderRadius: 8, objectFit: 'cover' }}
+            />
+            <button
+              onClick={() => setPendingImage(null)}
+              style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          style={{ display: 'none' }}
+        />
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!isTelegramReady || !!authError || isLoading}
+            style={{ width: 48, height: 48, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: 12, color: 'var(--text-muted)', cursor: 'pointer' }}
+          >
+            <Paperclip size={20} />
+          </button>
           <input 
             type="text" 
             className="input-field" 
             value={input} 
             onChange={(e) => setInput(e.target.value)} 
-            placeholder={isTelegramReady ? 'Спросите что-нибудь...' : 'Подключаю Telegram...'} 
+            placeholder={isTelegramReady ? (pendingImage ? 'Опишите проблему (необязательно)...' : 'Спросите что-нибудь...') : 'Подключаю Telegram...'} 
             style={{ flex: 1 }}
             disabled={!isTelegramReady || !!authError}
           />
-          <button type="submit" className="btn-primary" style={{ width: 48, height: 48, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} disabled={isLoading || !input.trim() || !isTelegramReady || !!authError}>
+          <button type="submit" className="btn-primary" style={{ width: 48, height: 48, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} disabled={isLoading || (!input.trim() && !pendingImage) || !isTelegramReady || !!authError}>
             <Send size={20} />
           </button>
         </form>

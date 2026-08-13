@@ -40,11 +40,46 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Слишком много запросов. Попробуйте позже.' }, { status: 429 });
     }
 
-    const { messages, sessionId } = await req.json() as { messages: ChatMessage[]; sessionId?: string };
+    const { messages, sessionId, imageBase64 } = await req.json() as { messages: ChatMessage[]; sessionId?: string; imageBase64?: string };
     const lastMessage = messages[messages.length - 1];
 
     if (!lastMessage || lastMessage.role !== 'user') {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
+    }
+
+    // If image provided, use GPT-4o-mini to extract text/error description
+    let imageContext = '';
+    if (imageBase64) {
+      const hasOpenAIKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
+      if (!hasOpenAIKey) {
+        return NextResponse.json({ error: 'Для распознавания фото нужен OpenAI API ключ (EMBEDDINGS_API_KEY)' }, { status: 500 });
+      }
+      try {
+        const visionResponse = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an OCR assistant. Extract ALL visible text from this screenshot. Include error messages, UI labels, buttons, numbers, paths, and any other text. Output the extracted text as-is, preserving structure. If it is an error dialog, prioritize the error message text. Respond in the same language as the text in the image.'
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Extract all visible text from this screenshot:' },
+                { type: 'image_url', image_url: { url: imageBase64 } },
+              ],
+            },
+          ],
+          max_tokens: 1000,
+        });
+        imageContext = visionResponse.choices[0]?.message?.content || '';
+        if (imageContext) {
+          lastMessage.content = `${lastMessage.content}\n\n[Текст со скриншота]:\n${imageContext}`;
+        }
+      } catch (e) {
+        console.error('Vision API error:', e);
+        return NextResponse.json({ error: 'Не удалось распознать фото. Попробуйте ещё раз.' }, { status: 500 });
+      }
     }
 
     if (!DEEPSEEK_API_KEY) {
