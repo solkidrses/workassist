@@ -19,7 +19,7 @@ read -rp "Domain (e.g. myapp.example.com): " DOMAIN
 read -rp "Admin Telegram ID: " ADMIN_ID
 read -rp "Bot Token (from BotFather): " BOT_TOKEN
 read -rp "DeepSeek API Key: " DEEPSEEK_KEY
-read -rp "Embeddings API Key (Enter to skip — text search fallback): " EMBED_KEY
+read -rp "SiliconFlow API Key (for photo OCR + embeddings): " SILICONFLOW_KEY
 read -rp "Email for SSL certificates: " SSL_EMAIL
 read -rp "SSH port (current, to avoid lockout): " SSH_PORT
 SSH_PORT=${SSH_PORT:-22}
@@ -34,7 +34,7 @@ echo -e "  App dir:      $APP_DIR"
 echo -e "  Repo:         $REPO_URL"
 echo -e "  SSL email:    $SSL_EMAIL"
 echo -e "  SSH port:     $SSH_PORT"
-echo -e "  Embeddings:   ${EMBED_KEY:-disabled (text search fallback)}"
+echo -e "  Embeddings:   SiliconFlow (Qwen3-Embedding-4B)"
 echo
 read -rp "Continue? (y/n): " CONFIRM
 [[ "${CONFIRM,,}" == "y" ]] || exit 0
@@ -86,7 +86,7 @@ DATABASE_URL="postgresql://tehpod:${DB_PASS}@db:5432/tehpod?schema=public"
 BOT_TOKEN=${BOT_TOKEN}
 ADMIN_TELEGRAM_ID=${ADMIN_ID}
 DEEPSEEK_API_KEY=${DEEPSEEK_KEY}
-EMBEDDINGS_API_KEY=${EMBED_KEY:-dummy_key}
+SILICONFLOW_API_KEY=${SILICONFLOW_KEY}
 INTERNAL_API_KEY=${INTERNAL_KEY}
 NEXT_PUBLIC_TMA_URL=https://${DOMAIN}
 API_URL=http://app:3000

@@ -21,7 +21,9 @@ type RetrievedInstruction = {
   photoUrl?: string | null;
 };
 
-const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
+const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY;
+const SILICONFLOW_BASE_URL = 'https://api.siliconflow.cn/v1';
+const siliconflow = new OpenAI({ apiKey: SILICONFLOW_API_KEY || 'dummy_key', baseURL: SILICONFLOW_BASE_URL });
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
@@ -47,16 +49,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
     }
 
-    // If image provided, use GPT-4o-mini to extract text/error description
+    // If image provided, use SiliconFlow Qwen3.5-9B to extract text/error description
     let imageContext = '';
     if (imageBase64) {
-      const hasOpenAIKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
-      if (!hasOpenAIKey) {
-        return NextResponse.json({ error: 'Для распознавания фото нужен OpenAI API ключ (EMBEDDINGS_API_KEY)' }, { status: 500 });
+      if (!SILICONFLOW_API_KEY) {
+        return NextResponse.json({ error: 'Для распознавания фото нужен SiliconFlow API ключ (SILICONFLOW_API_KEY)' }, { status: 500 });
       }
       try {
-        const visionResponse = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+        const visionResponse = await siliconflow.chat.completions.create({
+          model: 'Qwen/Qwen3.5-9B',
           messages: [
             {
               role: 'system',
@@ -123,15 +124,16 @@ export async function POST(req: Request) {
       content: r.content,
     }));
 
-    let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
+    let hasEmbeddingsKey = SILICONFLOW_API_KEY && SILICONFLOW_API_KEY !== 'dummy_key';
     let results: RetrievedInstruction[] = [];
 
     if (hasEmbeddingsKey) {
       try {
-        // Embed user query
-        const embeddingResponse = await openai.embeddings.create({
-          model: 'text-embedding-3-small',
+        // Embed user query via SiliconFlow
+        const embeddingResponse = await siliconflow.embeddings.create({
+          model: 'Qwen/Qwen3-Embedding-4B',
           input: lastMessage.content,
+          dimensions: 1536,
         });
         const embedding = embeddingResponse.data[0].embedding;
         const embeddingStr = `[${embedding.join(',')}]`;

@@ -13,7 +13,9 @@ type SearchResultRow = {
   similarity?: number;
 };
 
-const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY || 'dummy_key' });
+const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY;
+const SILICONFLOW_BASE_URL = 'https://api.siliconflow.cn/v1';
+const siliconflow = new OpenAI({ apiKey: SILICONFLOW_API_KEY || 'dummy_key', baseURL: SILICONFLOW_BASE_URL });
 
 export async function GET(req: Request) {
   try {
@@ -34,16 +36,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    let hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
+    let hasEmbeddingsKey = SILICONFLOW_API_KEY && SILICONFLOW_API_KEY !== 'dummy_key';
     
     let results: SearchResultRow[] = [];
 
     if (hasEmbeddingsKey) {
       try {
-        // Generate embedding for query
-        const embeddingResponse = await openai.embeddings.create({
-          model: 'text-embedding-3-small',
+        // Generate embedding for query via SiliconFlow
+        const embeddingResponse = await siliconflow.embeddings.create({
+          model: 'Qwen/Qwen3-Embedding-4B',
           input: query,
+          dimensions: 1536,
         });
         const embedding = embeddingResponse.data[0].embedding;
         const embeddingStr = `[${embedding.join(',')}]`;
