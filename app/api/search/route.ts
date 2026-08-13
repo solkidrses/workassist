@@ -14,7 +14,7 @@ type SearchResultRow = {
 };
 
 const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY;
-const SILICONFLOW_BASE_URL = 'https://api.siliconflow.cn/v1';
+const SILICONFLOW_BASE_URL = 'https://api.siliconflow.com/v1';
 const siliconflow = new OpenAI({ apiKey: SILICONFLOW_API_KEY || 'dummy_key', baseURL: SILICONFLOW_BASE_URL });
 
 export async function GET(req: Request) {
