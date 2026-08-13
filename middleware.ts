@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifySessionEdge } from '@/lib/sessionCookieEdge'
 
-const PUBLIC_PATHS = ['/api/auth', '/api/access-request']
+const PUBLIC_PATHS = ['/api/auth', '/api/access-request', '/api/photos']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
