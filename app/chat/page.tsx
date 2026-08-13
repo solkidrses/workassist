@@ -56,6 +56,33 @@ export default function ChatPage() {
     return () => { if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current); };
   }, [messages]);
 
+  // Paste image from clipboard (Ctrl+V / mobile paste)
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (!file) continue;
+          if (file.size > 10 * 1024 * 1024) {
+            alert('Фото слишком большое (макс. 10 МБ)');
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setPendingImage(event.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+          e.preventDefault();
+          break;
+        }
+      }
+    };
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
+
   const loadSessionMessages = async (sessionId: string) => {
     setHistoryLoaded(false);
     try {
