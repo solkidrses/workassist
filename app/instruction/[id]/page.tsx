@@ -326,7 +326,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
 
             {instruction.summary && (
               <div className="zinc-card detail-enter" style={{ marginBottom: 16, animationDelay: '0.04s' }}>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, letterSpacing: 0.3 }}>
                   Краткая суть
                 </div>
                 <div style={{ fontSize: 14, lineHeight: 1.5 }}>
@@ -348,7 +348,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             )}
 
             <div className="zinc-card detail-enter" style={{ borderLeft: 'none', animationDelay: '0.12s' }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3 }}>
                 Полная инструкция
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.6 }}>

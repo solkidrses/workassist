@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
@@ -241,9 +241,11 @@ export default function LibraryPage() {
             <button
               type="button"
               onClick={clearSearch}
-              style={{ position: 'absolute', right: 12, top: 12, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+              style={{ position: 'absolute', right: 10, top: 10, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, transition: 'color 0.2s ease' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
             >
-              Сброс
+              <X size={18} />
             </button>
           )}
         </form>

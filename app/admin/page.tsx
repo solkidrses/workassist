@@ -478,7 +478,7 @@ export default function AdminPage() {
               <>
                 {users.filter(u => u.status === 'pending').length > 0 && (
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Заявки</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, letterSpacing: 0.3 }}>Заявки</div>
                     {users.filter(u => u.status === 'pending').map((u) => (
                       <div key={u.id} className="zinc-card card-enter" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, borderLeft: '3px solid var(--accent)', overflow: 'hidden' }}>
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
@@ -514,7 +514,7 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, letterSpacing: 0.3 }}>
                   Пользователи ({users.filter(u => u.status === 'approved').length})
                 </div>
                 {users.filter(u => u.status === 'approved').map((u) => (
