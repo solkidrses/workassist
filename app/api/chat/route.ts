@@ -106,7 +106,8 @@ export async function POST(req: Request) {
 
     // Create new session if none provided
     if (!activeSessionId) {
-      const sessionTitle = lastMessage.content.split(' ').slice(0, 5).join(' ').substring(0, 60);
+      const cleanContent = lastMessage.content.split('[Текст со скриншота]:')[0].trim();
+      const sessionTitle = cleanContent.split(' ').slice(0, 5).join(' ').substring(0, 60);
       const newId = crypto.randomUUID();
       await prisma.$executeRaw`INSERT INTO chat_sessions (id, title, "telegramId", "createdAt") VALUES (${newId}, ${sessionTitle}, ${userTelegramId}, NOW())`;
       activeSessionId = newId;

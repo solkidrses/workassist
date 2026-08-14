@@ -296,7 +296,8 @@ export default function ChatPage() {
       // Read session id from response header
       const newSessionId = response.headers.get('X-Session-Id') || currentSessionId;
       if (newSessionId && newSessionId !== currentSessionId) {
-        const title = userMessage.content.split(' ').slice(0, 5).join(' ').substring(0, 60) || 'Новый чат';
+        const cleanContent = userMessage.content.split('[Текст со скриншота]:')[0].trim();
+        const title = cleanContent.split(' ').slice(0, 5).join(' ').substring(0, 60) || 'Новый чат';
         const newSession: ChatSession = { id: newSessionId, title, createdAt: new Date().toISOString() };
         setSessions(prev => {
           const updated = prev.find(s => s.id === newSessionId)
