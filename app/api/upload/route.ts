@@ -107,14 +107,15 @@ export async function POST(req: Request) {
           messages: [
             {
               role: "system",
-              content: `You are an AI that extracts and structures work instructions from text into a clean JSON format. 
-Extract or generate the following fields:
-- title: A short descriptive title
-- summary: A 1-2 sentence summary
-- tag: EXACTLY ONE of [${availableTags}]
-- fullText: The full formatted instruction in Markdown
+              content: `Ты — ИИ, который извлекает и структурирует рабочие инструкции из текста в чистый JSON формат.
+ОБЯЗАТЕЛЬНО пиши ВСЕ поля на русском языке.
+Извлеки или сгенерируй следующие поля:
+- title: Короткое описательное название на русском
+- summary: Краткое описание в 1-2 предложения на русском
+- tag: РОВНО ОДНО из [${availableTags}]
+- fullText: Полный форматированный текст инструкции на русском в Markdown
 
-Output ONLY a valid JSON object. Do not include markdown formatting like \`\`\`json around the output.`
+Выведи ТОЛЬКО валидный JSON объект. Не включай markdown форматирование вроде \`\`\`json вокруг вывода.`
             },
             { role: "user", content: text }
           ],
