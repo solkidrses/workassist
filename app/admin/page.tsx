@@ -48,6 +48,7 @@ export default function AdminPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [metrics, setMetrics] = useState<{ cpu: number; memTotal: number; memUsed: number; memPercent: number; diskTotal: number; diskUsed: number; diskFree: number; diskPercent: number } | null>(null);
+  const [showMetrics, setShowMetrics] = useState(false);
 
   const [users, setUsers] = useState<AppUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -278,38 +279,44 @@ export default function AdminPage() {
       <div className="page-content">
         {metrics && (
           <div className="zinc-card" style={{ marginBottom: 16, padding: 14 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Сервер
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                  <span>CPU</span>
-                  <span style={{ color: 'var(--text-muted)' }}>{metrics.cpu}%</span>
+            <button
+              onClick={() => setShowMetrics(v => !v)}
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14, fontWeight: 500, cursor: 'pointer', padding: 0 }}
+            >
+              <span>Нагрузка на сервер</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{showMetrics ? '▲' : '▼'}</span>
+            </button>
+            {showMetrics && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                    <span>CPU</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{metrics.cpu}%</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${metrics.cpu}%`, background: metrics.cpu > 80 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                  </div>
                 </div>
-                <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${metrics.cpu}%`, background: metrics.cpu > 80 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                    <span>ОЗУ</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{metrics.memUsed} / {metrics.memTotal} МБ · {metrics.memPercent}%</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${metrics.memPercent}%`, background: metrics.memPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                  </div>
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                    <span>Диск</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{(metrics.diskFree / 1073741824).toFixed(1)} ГБ свободно · {metrics.diskPercent}% занято</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${metrics.diskPercent}%`, background: metrics.diskPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                  </div>
                 </div>
               </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                  <span>ОЗУ</span>
-                  <span style={{ color: 'var(--text-muted)' }}>{metrics.memUsed} / {metrics.memTotal} МБ · {metrics.memPercent}%</span>
-                </div>
-                <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${metrics.memPercent}%`, background: metrics.memPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
-                </div>
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                  <span>Диск</span>
-                  <span style={{ color: 'var(--text-muted)' }}>{(metrics.diskFree / 1073741824).toFixed(1)} ГБ свободно · {metrics.diskPercent}% занято</span>
-                </div>
-                <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${metrics.diskPercent}%`, background: metrics.diskPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 

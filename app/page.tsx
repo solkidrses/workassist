@@ -320,9 +320,9 @@ export default function LibraryPage() {
                   </p>
                   {inst.similarity !== undefined && (
                     <div style={{ marginTop: 8, fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>Совпадение: {(inst.similarity * 100).toFixed(0)}%</span>
-                      <div className="match-bar">
-                        <div className="match-bar-fill" style={{ width: `${(inst.similarity * 100).toFixed(0)}%` }} />
+                      <span style={{ whiteSpace: 'nowrap', minWidth: 80 }}>Совпадение: {Math.round(inst.similarity * 100)}%</span>
+                      <div className="match-bar" style={{ flex: 1 }}>
+                        <div className="match-bar-fill" style={{ width: `${Math.max(4, Math.round(inst.similarity * 100))}%` }} />
                       </div>
                     </div>
                   )}

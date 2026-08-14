@@ -424,7 +424,23 @@ export default function ChatPage() {
                     <MarkdownText content={m.content} />
                   )
                 ) : (
-                  m.content
+                  (() => {
+                    const ocrMarker = '[Текст со скриншота]:';
+                    const markerIndex = m.content.indexOf(ocrMarker);
+                    const userText = markerIndex > 0 ? m.content.slice(0, markerIndex).trim() : (m.content.includes(ocrMarker) ? '' : m.content);
+                    const ocrText = markerIndex >= 0 ? m.content.slice(markerIndex + ocrMarker.length).trim() : '';
+                    return (
+                      <>
+                        {userText && userText !== '📷 Фото' && <div>{userText}</div>}
+                        {ocrText && (
+                          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)', padding: '8px 10px', background: 'var(--bg-elevated)', borderRadius: 8 }}>
+                            <div style={{ marginBottom: 4, fontWeight: 500 }}>📝 Распознанный текст:</div>
+                            {ocrText}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()
                 )}
               </div>
             </div>
