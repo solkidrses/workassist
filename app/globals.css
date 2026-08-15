@@ -222,6 +222,7 @@ a, button {
 .message-stack {
   flex: 1;
   padding: 16px;
+  padding-bottom: calc(60px + 80px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 16px;
