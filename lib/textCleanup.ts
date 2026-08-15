@@ -2,6 +2,7 @@ export function cleanupText(text: string): string {
   return text
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
+    .replace(/\[([^\]]*)\]\(#[^)]*\)/g, '$1')
     .replace(/[ \t]+$/gm, '')
     .replace(/^[ \t]+/gm, '')
     .replace(/\n{3,}/g, '\n\n')

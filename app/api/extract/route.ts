@@ -71,7 +71,8 @@ export async function POST(req: Request) {
         }
       );
 
-      text = turndown.turndown(result.value);
+      const htmlCleaned = result.value.replace(/<a[^>]*href="#[^"]*"[^>]*>(.*?)<\/a>/gi, '$1');
+      text = turndown.turndown(htmlCleaned);
       text = text.replace(/!\[[^\]]*\]\(\)/g, '');
     } else {
       return NextResponse.json({ error: 'Поддерживаются только .txt и .docx' }, { status: 400 });
