@@ -543,7 +543,7 @@ export default function ChatPage() {
                   }}
                 >
                   <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title.split('[Текст со скриншота]:')[0].trim()}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(s.createdAt).toLocaleDateString('ru-RU')}</div>
                   </div>
                   <button
