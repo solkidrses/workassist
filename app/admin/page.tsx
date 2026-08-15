@@ -50,6 +50,9 @@ export default function AdminPage() {
   const [metrics, setMetrics] = useState<{ cpu: number; memTotal: number; memUsed: number; memPercent: number; diskTotal: number; diskUsed: number; diskFree: number; diskPercent: number } | null>(null);
   const [showMetrics, setShowMetrics] = useState(false);
 
+  const [deepseekInfo, setDeepseekInfo] = useState<{ balance: string; granted: string; toppedUp: string; chatModel: string; uploadModel: string } | null>(null);
+  const [deepseekLoading, setDeepseekLoading] = useState(false);
+
   const [users, setUsers] = useState<AppUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'categories' | 'users'>('categories');
@@ -76,6 +79,22 @@ export default function AdminPage() {
     if (!isTelegramReady || access !== 'ok' || role !== 'admin') return;
     fetchCategories();
   }, [isTelegramReady, access, role, JSON.stringify(authHeaders), fetchCategories]);
+
+  const fetchDeepseekInfo = useCallback(async () => {
+    if (!isTelegramReady) return;
+    setDeepseekLoading(true);
+    try {
+      const res = await fetch('/api/admin/deepseek-info', { headers: authHeaders, cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) setDeepseekInfo(data.data);
+    } catch {}
+    setDeepseekLoading(false);
+  }, [authHeaders, isTelegramReady]);
+
+  useEffect(() => {
+    if (!isTelegramReady || access !== 'ok' || role !== 'admin') return;
+    fetchDeepseekInfo();
+  }, [isTelegramReady, access, role, JSON.stringify(authHeaders), fetchDeepseekInfo]);
 
   useEffect(() => {
     if (!isTelegramReady || access !== 'ok' || role !== 'admin') return;
@@ -277,6 +296,34 @@ export default function AdminPage() {
       )}
 
       <div className="page-content">
+        {deepseekInfo && (
+          <div className="zinc-card" style={{ marginBottom: 16, padding: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 500 }}>DeepSeek</span>
+              <button
+                onClick={fetchDeepseekInfo}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12, padding: 0 }}
+              >
+                {deepseekLoading ? '...' : 'Обновить'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Баланс</span>
+                <span style={{ fontWeight: 600, color: parseFloat(deepseekInfo.balance) < 1 ? 'var(--danger)' : 'var(--success)' }}>${deepseekInfo.balance}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Модель чата</span>
+                <span>{deepseekInfo.chatModel}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Модель загрузки</span>
+                <span>{deepseekInfo.uploadModel}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {metrics && (
           <div className="zinc-card" style={{ marginBottom: 16, padding: 14 }}>
             <button
