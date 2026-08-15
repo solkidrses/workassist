@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, use, useCallback } from 'react';
+import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Save, Calendar, X } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Save, Calendar, X, Search as SearchIcon } from 'lucide-react';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { CategorySelect } from '@/components/CategorySelect';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
@@ -35,6 +35,10 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [fadingOut, setFadingOut] = useState(false);
   const [photoViewer, setPhotoViewer] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [intraSearch, setIntraSearch] = useState('');
+  const [searchMatches, setSearchMatches] = useState<number[]>([]);
+  const [currentMatch, setCurrentMatch] = useState(0);
+  const fullTextRef = useRef<HTMLDivElement>(null);
 
   const [editTitle, setEditTitle] = useState('');
   const [editSummary, setEditSummary] = useState('');
@@ -348,10 +352,74 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             )}
 
             <div className="zinc-card detail-enter" style={{ borderLeft: 'none', animationDelay: '0.12s' }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3 }}>
-                Полная инструкция
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Полная инструкция</span>
+                {searchMatches.length > 0 && (
+                  <span style={{ fontSize: 11, color: 'var(--accent)' }}>
+                    {currentMatch + 1} / {searchMatches.length}
+                  </span>
+                )}
               </div>
-              <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Поиск внутри инструкции..."
+                  value={intraSearch}
+                  onChange={(e) => {
+                    const q = e.target.value;
+                    setIntraSearch(q);
+                    setCurrentMatch(0);
+                    if (q.trim().length < 2) {
+                      setSearchMatches([]);
+                      return;
+                    }
+                    const text = instruction.fullText.toLowerCase();
+                    const query = q.toLowerCase();
+                    const indices: number[] = [];
+                    let pos = 0;
+                    while ((pos = text.indexOf(query, pos)) !== -1) {
+                      indices.push(pos);
+                      pos += query.length;
+                    }
+                    setSearchMatches(indices);
+                    if (indices.length > 0) {
+                      const container = fullTextRef.current;
+                      if (container) {
+                        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+                        let charCount = 0;
+                        let targetNode: Text | null = null;
+                        while (walker.nextNode()) {
+                          const node = walker.currentNode as Text;
+                          const nodeLen = node.textContent?.length || 0;
+                          if (charCount + nodeLen >= indices[0]) {
+                            targetNode = node;
+                            break;
+                          }
+                          charCount += nodeLen;
+                        }
+                        if (targetNode) {
+                          const range = document.createRange();
+                          range.selectNodeContents(targetNode);
+                          const rect = range.getBoundingClientRect();
+                          window.scrollTo({ top: rect.top + window.scrollY - 100, behavior: 'smooth' });
+                        }
+                      }
+                    }
+                  }}
+                  style={{ paddingLeft: 36, fontSize: 13, height: 36, marginBottom: 0 }}
+                />
+                <SearchIcon size={15} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--text-muted)' }} />
+                {intraSearch && (
+                  <button
+                    onClick={() => { setIntraSearch(''); setSearchMatches([]); setCurrentMatch(0); }}
+                    style={{ position: 'absolute', right: 8, top: 8, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+              <div ref={fullTextRef} style={{ fontSize: 14, lineHeight: 1.6 }}>
                 <MarkdownText content={instruction.fullText} imageSize="full" />
               </div>
             </div>

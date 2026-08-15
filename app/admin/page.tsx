@@ -104,7 +104,7 @@ export default function AdminPage() {
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 5000);
     return () => clearInterval(interval);
-  }, [isTelegramReady, JSON.stringify(authHeaders)]);
+  }, [isTelegramReady, access, role, JSON.stringify(authHeaders)]);
 
   const fetchUsers = useCallback(async () => {
     if (!isTelegramReady) return;

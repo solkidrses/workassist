@@ -320,7 +320,7 @@ export default function LibraryPage() {
                   <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {inst.summary || 'Нажмите, чтобы прочитать полностью...'}
                   </p>
-                  {inst.similarity !== undefined && (
+                  {isSearching && inst.similarity !== undefined && (
                     <div style={{ marginTop: 8, fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ whiteSpace: 'nowrap', minWidth: 80 }}>Совпадение: {Math.round(inst.similarity * 100)}%</span>
                       <div className="match-bar" style={{ flex: 1 }}>
