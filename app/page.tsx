@@ -125,7 +125,8 @@ export default function LibraryPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setInstructions(data.data);
+        const validResults = (data.data || []).filter((i: Instruction) => i.similarity === undefined || Math.round(i.similarity * 100) > 0);
+        setInstructions(validResults);
       } else {
         setRequestError(data.error || 'Поиск временно недоступен.');
       }

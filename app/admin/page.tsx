@@ -48,6 +48,7 @@ export default function AdminPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [metrics, setMetrics] = useState<{ cpu: number; memTotal: number; memUsed: number; memPercent: number; diskTotal: number; diskUsed: number; diskFree: number; diskPercent: number } | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
   const [showMetrics, setShowMetrics] = useState(false);
 
   const [deepseekInfo, setDeepseekInfo] = useState<{ isAvailable: boolean; totalBalance: string; currency: string; grantedBalance: string; toppedUpBalance: string; chatModel: string } | null>(null);
@@ -92,19 +93,23 @@ export default function AdminPage() {
     setDeepseekLoading(false);
   }, [authHeaders, isTelegramReady]);
 
+  const fetchMetrics = useCallback(async () => {
+    if (!isTelegramReady || access !== 'ok' || role !== 'admin') return;
+    setMetricsLoading(true);
+    try {
+      const res = await fetch('/api/admin/metrics', { headers: authHeaders, cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) setMetrics(data.data);
+    } catch {}
+    setMetricsLoading(false);
+  }, [authHeaders, isTelegramReady, access, role]);
+
   useEffect(() => {
     if (!isTelegramReady || access !== 'ok' || role !== 'admin') return;
-    const fetchMetrics = async () => {
-      try {
-        const res = await fetch('/api/admin/metrics', { headers: authHeaders, cache: 'no-store' });
-        const data = await res.json();
-        if (data.success) setMetrics(data.data);
-      } catch {}
-    };
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 5000);
     return () => clearInterval(interval);
-  }, [isTelegramReady, access, role, JSON.stringify(authHeaders)]);
+  }, [isTelegramReady, access, role, JSON.stringify(authHeaders), fetchMetrics]);
 
   const fetchUsers = useCallback(async () => {
     if (!isTelegramReady) return;
@@ -335,48 +340,74 @@ export default function AdminPage() {
           )}
         </div>
 
-        {metrics && (
-          <div className="zinc-card" style={{ marginBottom: 16, padding: 14 }}>
-            <button
-              onClick={() => setShowMetrics(v => !v)}
-              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14, fontWeight: 500, cursor: 'pointer', padding: 0 }}
-            >
+        <div className="zinc-card" style={{ marginBottom: 16, padding: 14 }}>
+          <button
+            onClick={() => {
+              const next = !showMetrics;
+              setShowMetrics(next);
+              if (next && !metrics) {
+                fetchMetrics();
+              }
+            }}
+            style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14, fontWeight: 500, cursor: 'pointer', padding: 0 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>Нагрузка на сервер</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{showMetrics ? '▲' : '▼'}</span>
-            </button>
-            {showMetrics && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                    <span>CPU</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{metrics.cpu}%</span>
+              {metrics && (
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>
+                  (CPU {metrics.cpu}% · RAM {metrics.memPercent}%)
+                </span>
+              )}
+            </div>
+            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{showMetrics ? '▲' : '▼'}</span>
+          </button>
+          {showMetrics && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              {metricsLoading && !metrics ? (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 0' }}>Загрузка метрик сервера...</div>
+              ) : metrics ? (
+                <>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                      <span>CPU</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{metrics.cpu}%</span>
+                    </div>
+                    <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${metrics.cpu}%`, background: metrics.cpu > 80 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                    </div>
                   </div>
-                  <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${metrics.cpu}%`, background: metrics.cpu > 80 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                      <span>ОЗУ</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{metrics.memUsed} / {metrics.memTotal} МБ · {metrics.memPercent}%</span>
+                    </div>
+                    <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${metrics.memPercent}%`, background: metrics.memPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                    <span>ОЗУ</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{metrics.memUsed} / {metrics.memTotal} МБ · {metrics.memPercent}%</span>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                      <span>Диск</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{(metrics.diskFree / 1073741824).toFixed(1)} ГБ свободно · {metrics.diskPercent}% занято</span>
+                    </div>
+                    <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${metrics.diskPercent}%`, background: metrics.diskPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                    </div>
                   </div>
-                  <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${metrics.memPercent}%`, background: metrics.memPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
-                  </div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                    <span>Диск</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{(metrics.diskFree / 1073741824).toFixed(1)} ГБ свободно · {metrics.diskPercent}% занято</span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 2, background: '#27272a', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${metrics.diskPercent}%`, background: metrics.diskPercent > 85 ? 'var(--danger)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.5s ease' }} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+                  <button
+                    onClick={() => fetchMetrics()}
+                    disabled={metricsLoading}
+                    style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12, padding: '6px 12px', borderRadius: 8, marginTop: 4, alignSelf: 'flex-start' }}
+                  >
+                    {metricsLoading ? 'Обновление...' : 'Обновить'}
+                  </button>
+                </>
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Нет данных</div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Categories Section */}
         {activeTab === 'categories' && (

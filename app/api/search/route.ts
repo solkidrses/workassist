@@ -51,31 +51,31 @@ export async function GET(req: Request) {
         const embedding = embeddingResponse.data[0].embedding;
         const embeddingStr = `[${embedding.join(',')}]`;
 
-        // Semantic search with threshold
+        // Semantic search with strict similarity threshold
         const rawResults = await prisma.$queryRaw<SearchResultRow[]>`
           SELECT id, title, summary, tag, "createdAt", 
           1 - (embedding <=> ${embeddingStr}::vector) as similarity
           FROM instructions
-          WHERE 1 - (embedding <=> ${embeddingStr}::vector) > 0.3
+          WHERE 1 - (embedding <=> ${embeddingStr}::vector) >= 0.45
           ORDER BY embedding <=> ${embeddingStr}::vector ASC
           LIMIT 10
         `;
-        results = rawResults;
+        results = rawResults.filter(r => (r.similarity ?? 0) >= 0.45 && Math.round((r.similarity ?? 0) * 100) > 0);
       } catch (e) {
         console.error("Embedding search failed, falling back to text search", e);
         hasEmbeddingsKey = false;
       }
     }
 
-    if (!hasEmbeddingsKey) {
-      // Keyword-based text search fallback with real similarity scoring
+    if (!hasEmbeddingsKey || results.length === 0) {
+      // Keyword-based text search fallback with strict matching
       const stopWords = new Set(['как', 'что', 'где', 'почему', 'зачем', 'чем', 'для', 'это', 'так', 'или', 'the', 'how', 'what', 'where', 'why']);
       const words = query.trim().split(/\s+/)
         .map(w => w.replace(/[^\wа-яё]/gi, '').toLowerCase())
-        .filter(w => w.length > 2 && !stopWords.has(w));
+        .filter(w => w.length >= 2 && !stopWords.has(w));
 
       if (words.length === 0) {
-        return NextResponse.json({ success: true, data: [] });
+        return NextResponse.json({ success: true, data: results });
       }
 
       const allRows = await prisma.$queryRaw<(SearchResultRow & { fullText: string })[]>`
@@ -83,7 +83,7 @@ export async function GET(req: Request) {
         FROM instructions
       `;
 
-      results = allRows
+      const textResults = allRows
         .map((row) => {
           const title = row.title.toLowerCase();
           const summary = (row.summary || '').toLowerCase();
@@ -96,12 +96,17 @@ export async function GET(req: Request) {
             else if (fullText.includes(w)) score += 0.3;
           }
 
-          return { ...row, similarity: Math.min(score / words.length, 1) };
+          const similarity = Math.min(score / words.length, 1);
+          return { ...row, similarity };
         })
-        .filter(r => r.similarity > 0)
+        .filter(r => (r.similarity ?? 0) >= 0.1 && Math.round((r.similarity ?? 0) * 100) > 0)
         .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
         .slice(0, 10)
         .map(({ fullText: _ft, ...rest }) => rest);
+
+      if (results.length === 0) {
+        results = textResults;
+      }
     }
 
     return NextResponse.json({ success: true, data: results });

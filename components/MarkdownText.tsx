@@ -36,7 +36,35 @@ function PhotoOverlay({ src, onClose }: { src: string; onClose: () => void }) {
   );
 }
 
-function renderMarkdown(text: string, onPhotoClick: (src: string) => void, imageSize: 'thumb' | 'full'): React.ReactNode[] {
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query || query.trim().length < 2) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const parts = text.split(regex);
+  if (parts.length === 1) return text;
+
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <mark
+        key={i}
+        className="search-highlight"
+        style={{
+          backgroundColor: 'var(--accent)',
+          color: '#000',
+          borderRadius: 3,
+          padding: '1px 3px',
+          fontWeight: 600,
+        }}
+      >
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
+function renderMarkdown(text: string, onPhotoClick: (src: string) => void, imageSize: 'thumb' | 'full', highlightQuery?: string): React.ReactNode[] {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let key = 0;
@@ -71,7 +99,8 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
       while ((imgMatch = inlineImgPattern.exec(line)) !== null) {
         if (!imgMatch) continue;
         if (imgMatch.index > imgLastIdx) {
-          parts.push(<React.Fragment key={imgPartKey++}>{line.slice(imgLastIdx, imgMatch.index)}</React.Fragment>);
+          const sliceText = line.slice(imgLastIdx, imgMatch.index);
+          parts.push(<React.Fragment key={imgPartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
         }
         const imgSrc = imgMatch[2];
         const imgAlt = imgMatch[1];
@@ -84,7 +113,8 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
         imgLastIdx = imgMatch.index + imgMatch[0].length;
       }
       if (imgLastIdx < line.length) {
-        parts.push(<React.Fragment key={imgPartKey++}>{line.slice(imgLastIdx)}</React.Fragment>);
+        const sliceText = line.slice(imgLastIdx);
+        parts.push(<React.Fragment key={imgPartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
       }
       elements.push(<div key={key++}>{parts}</div>);
       continue;
@@ -99,13 +129,16 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
     while ((boldMatch = boldPattern.exec(line)) !== null) {
       if (!boldMatch) continue;
       if (boldMatch.index > boldLastIdx) {
-        boldParts.push(<React.Fragment key={boldPartKey++}>{line.slice(boldLastIdx, boldMatch.index)}</React.Fragment>);
+        const sliceText = line.slice(boldLastIdx, boldMatch.index);
+        boldParts.push(<React.Fragment key={boldPartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
       }
-      boldParts.push(<strong key={boldPartKey++}>{boldMatch[1]}</strong>);
+      const boldContent = boldMatch[1];
+      boldParts.push(<strong key={boldPartKey++}>{highlightQuery ? highlightText(boldContent, highlightQuery) : boldContent}</strong>);
       boldLastIdx = boldMatch.index + boldMatch[0].length;
     }
     if (boldLastIdx < line.length) {
-      boldParts.push(<React.Fragment key={boldPartKey++}>{line.slice(boldLastIdx)}</React.Fragment>);
+      const sliceText = line.slice(boldLastIdx);
+      boldParts.push(<React.Fragment key={boldPartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
     }
     if (boldParts.length > 0) {
       elements.push(<div key={key++}>{boldParts}</div>);
@@ -122,7 +155,8 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
     while ((codeMatch = codePattern.exec(line)) !== null) {
       if (!codeMatch) continue;
       if (codeMatch.index > codeLastIdx) {
-        codeParts.push(<React.Fragment key={codePartKey++}>{line.slice(codeLastIdx, codeMatch.index)}</React.Fragment>);
+        const sliceText = line.slice(codeLastIdx, codeMatch.index);
+        codeParts.push(<React.Fragment key={codePartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
       }
       codeParts.push(
         <code key={codePartKey++} style={{ backgroundColor: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: 4, fontSize: 13, fontFamily: 'monospace' }}>
@@ -134,7 +168,8 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
     }
     if (hasCode) {
       if (codeLastIdx < line.length) {
-        codeParts.push(<React.Fragment key={codePartKey++}>{line.slice(codeLastIdx)}</React.Fragment>);
+        const sliceText = line.slice(codeLastIdx);
+        codeParts.push(<React.Fragment key={codePartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
       }
       elements.push(<div key={key++}>{codeParts}</div>);
       continue;
@@ -142,7 +177,7 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
 
     // Regular line
     if (line.trim()) {
-      elements.push(<div key={key++}>{line}</div>);
+      elements.push(<div key={key++}>{highlightQuery ? highlightText(line, highlightQuery) : line}</div>);
     } else {
       elements.push(<div key={key++} style={{ height: 8 }} />);
     }
@@ -151,9 +186,20 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
   return elements;
 }
 
-function MarkdownText({ content, imageSize = 'thumb' }: { content: string; imageSize?: 'thumb' | 'full' }) {
+function MarkdownText({
+  content,
+  imageSize = 'thumb',
+  highlightQuery
+}: {
+  content: string;
+  imageSize?: 'thumb' | 'full';
+  highlightQuery?: string;
+}) {
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
-  const rendered = useMemo(() => renderMarkdown(content, setPhotoSrc, imageSize), [content, imageSize]);
+  const rendered = useMemo(
+    () => renderMarkdown(content, setPhotoSrc, imageSize, highlightQuery),
+    [content, imageSize, highlightQuery]
+  );
   return (
     <>
       {rendered}
