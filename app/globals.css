@@ -368,6 +368,42 @@ a, button {
   to { transform: translateX(100%); }
 }
 
+@keyframes tg-match-flash {
+  0% {
+    background-color: rgba(251, 146, 60, 0.45);
+    box-shadow: 0 0 16px rgba(251, 146, 60, 0.6);
+  }
+  30% {
+    background-color: rgba(251, 146, 60, 0.35);
+    box-shadow: 0 0 10px rgba(251, 146, 60, 0.4);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+mark.search-highlight {
+  background-color: rgba(251, 146, 60, 0.3);
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+mark.search-highlight.active-match {
+  background-color: var(--accent) !important;
+  color: #000 !important;
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.85);
+  border-radius: 4px;
+}
+
+.tg-highlight-line {
+  animation: tg-match-flash 1.6s ease-out both;
+  border-radius: 8px;
+}
+
 @keyframes fill-bar {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }

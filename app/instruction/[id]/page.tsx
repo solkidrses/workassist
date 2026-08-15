@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Save, Calendar, X, Search as SearchIcon } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Save, Calendar, X, Search as SearchIcon, ArrowUp } from 'lucide-react';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { CategorySelect } from '@/components/CategorySelect';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
@@ -39,11 +39,41 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [searchMatches, setSearchMatches] = useState<number[]>([]);
   const [currentMatch, setCurrentMatch] = useState(0);
   const fullTextRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const [editTitle, setEditTitle] = useState('');
   const [editSummary, setEditSummary] = useState('');
   const [editFullText, setEditFullText] = useState('');
   const [editTag, setEditTag] = useState('general');
+
+  const highlightMatch = useCallback((index: number) => {
+    if (!fullTextRef.current) return;
+    const marks = fullTextRef.current.querySelectorAll('mark.search-highlight');
+    if (marks.length === 0) return;
+
+    marks.forEach((m, idx) => {
+      const el = m as HTMLElement;
+      if (idx === index) {
+        el.classList.add('active-match');
+        const parent = el.closest('div, p, li, strong, code');
+        if (parent) {
+          parent.classList.remove('tg-highlight-line');
+          // Trigger reflow to restart CSS animation
+          void (parent as HTMLElement).offsetWidth;
+          parent.classList.add('tg-highlight-line');
+          setTimeout(() => {
+            parent.classList.remove('tg-highlight-line');
+          }, 1800);
+        }
+      } else {
+        el.classList.remove('active-match');
+      }
+    });
+
+    if (marks[index]) {
+      marks[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
   useEffect(() => {
     if (!isTelegramReady) return;
@@ -351,7 +381,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
 
-            <div className="zinc-card detail-enter" style={{ borderLeft: 'none', animationDelay: '0.12s' }}>
+            <div ref={searchContainerRef} className="zinc-card detail-enter" style={{ borderLeft: 'none', animationDelay: '0.12s' }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>Полная инструкция</span>
                 {intraSearch.trim().length >= 2 && (
@@ -385,14 +415,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                       }
                       setSearchMatches(indices);
                       setTimeout(() => {
-                        if (!fullTextRef.current) return;
-                        const marks = fullTextRef.current.querySelectorAll('mark.search-highlight');
-                        if (marks.length > 0) {
-                          marks.forEach((m, idx) => {
-                            (m as HTMLElement).style.outline = idx === 0 ? '2px solid #fff' : 'none';
-                          });
-                          marks[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
+                        highlightMatch(0);
                       }, 50);
                     }}
                     style={{ paddingLeft: 36, paddingRight: intraSearch ? 32 : 12, fontSize: 13, height: 38, marginBottom: 0 }}
@@ -414,14 +437,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                       onClick={() => {
                         const next = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
                         setCurrentMatch(next);
-                        if (!fullTextRef.current) return;
-                        const marks = fullTextRef.current.querySelectorAll('mark.search-highlight');
-                        if (marks[next]) {
-                          marks.forEach((m, idx) => {
-                            (m as HTMLElement).style.outline = idx === next ? '2px solid #fff' : 'none';
-                          });
-                          marks[next].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
+                        highlightMatch(next);
                       }}
                       title="Предыдущее совпадение"
                       style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
@@ -433,14 +449,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                       onClick={() => {
                         const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
                         setCurrentMatch(next);
-                        if (!fullTextRef.current) return;
-                        const marks = fullTextRef.current.querySelectorAll('mark.search-highlight');
-                        if (marks[next]) {
-                          marks.forEach((m, idx) => {
-                            (m as HTMLElement).style.outline = idx === next ? '2px solid #fff' : 'none';
-                          });
-                          marks[next].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
+                        highlightMatch(next);
                       }}
                       title="Следующее совпадение"
                       style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
@@ -457,6 +466,33 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
       </div>
+
+      {intraSearch.trim().length >= 2 && (
+        <button
+          onClick={() => {
+            searchContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }}
+          className="btn-primary"
+          style={{
+            position: 'fixed',
+            bottom: 76,
+            right: 16,
+            zIndex: 85,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '10px 16px',
+            borderRadius: 24,
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.55)',
+            animation: 'fade-in-up 0.25s ease both',
+          }}
+        >
+          <ArrowUp size={16} />
+          <span>К поиску</span>
+        </button>
+      )}
 
       {photoViewer && createPortal(
         <div

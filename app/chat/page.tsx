@@ -1,7 +1,7 @@
 'use client'
 
 import { Send, Trash2, Plus, MessageSquare, X, Trash, Paperclip, Camera } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 import MarkdownText from '@/components/MarkdownText';
@@ -47,6 +47,13 @@ export default function ChatPage() {
   const SESSIONS_CACHE_KEY = 'chat_sessions_cache';
 
   const scrollRafRef = useRef<number | null>(null);
+  
+  const scrollToBottom = useCallback((smooth = true) => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    }, 40);
+  }, []);
+
   useEffect(() => {
     if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
     scrollRafRef.current = requestAnimationFrame(() => {
@@ -55,6 +62,14 @@ export default function ChatPage() {
     });
     return () => { if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current); };
   }, [messages]);
+
+  useEffect(() => {
+    const handleScrollToBottom = () => {
+      scrollToBottom(true);
+    };
+    window.addEventListener('scroll-chat-to-bottom', handleScrollToBottom);
+    return () => window.removeEventListener('scroll-chat-to-bottom', handleScrollToBottom);
+  }, [scrollToBottom]);
 
   // Paste image from clipboard (Ctrl+V / mobile paste)
   useEffect(() => {
@@ -343,7 +358,13 @@ export default function ChatPage() {
   return (
     <div className="page-shell" style={{ paddingBottom: 130 }}>
       <div className="header">
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Чат</h1>
+        <h1
+          onClick={() => scrollToBottom(true)}
+          style={{ margin: 0, fontSize: 20, fontWeight: 600, cursor: 'pointer' }}
+          title="Прокрутить в самый низ"
+        >
+          Чат
+        </h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {currentSessionId && (
             <button

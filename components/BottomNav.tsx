@@ -24,7 +24,16 @@ export default function BottomNav() {
       {items.map(({ href, label, icon: Icon, match }) => {
         const isActive = match(pathname);
         return (
-          <Link key={href} href={href} className={`bottom-nav-link ${isActive ? 'active' : ''}`}>
+          <Link
+            key={href}
+            href={href}
+            onClick={() => {
+              if (href === '/chat') {
+                window.dispatchEvent(new CustomEvent('scroll-chat-to-bottom'));
+              }
+            }}
+            className={`bottom-nav-link ${isActive ? 'active' : ''}`}
+          >
             <Icon size={22} />
             <span style={{ fontSize: 10, marginTop: 4, fontWeight: isActive ? 500 : 400 }}>{label}</span>
           </Link>

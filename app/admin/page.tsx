@@ -328,9 +328,10 @@ export default function AdminPage() {
                   </div>
                   <button
                     onClick={fetchDeepseekInfo}
-                    style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12, padding: '6px 12px', borderRadius: 8, marginTop: 4 }}
+                    disabled={deepseekLoading}
+                    style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12, padding: '6px 12px', borderRadius: 8, marginTop: 4, alignSelf: 'flex-start' }}
                   >
-                    Обновить
+                    {deepseekLoading ? 'Обновление...' : 'Обновить'}
                   </button>
                 </>
               ) : (
@@ -351,14 +352,7 @@ export default function AdminPage() {
             }}
             style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14, fontWeight: 500, cursor: 'pointer', padding: 0 }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Нагрузка на сервер</span>
-              {metrics && (
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>
-                  (CPU {metrics.cpu}% · RAM {metrics.memPercent}%)
-                </span>
-              )}
-            </div>
+            <span>Нагрузка на сервер</span>
             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{showMetrics ? '▲' : '▼'}</span>
           </button>
           {showMetrics && (
