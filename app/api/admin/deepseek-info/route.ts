@@ -21,14 +21,16 @@ export async function GET(req: Request) {
     }
 
     const data = await res.json();
+    const info = data.balance_infos?.[0] || {};
     return NextResponse.json({
       success: true,
       data: {
-        balance: data.balance,
-        granted: data.granted,
-        toppedUp: data.topped_up,
+        isAvailable: data.is_available ?? false,
+        totalBalance: info.total_balance ?? '0',
+        currency: info.currency ?? 'USD',
+        grantedBalance: info.granted_balance ?? '0',
+        toppedUpBalance: info.topped_up_balance ?? '0',
         chatModel: 'deepseek-v4-flash',
-        uploadModel: 'deepseek-chat',
       },
     });
   } catch (error) {
