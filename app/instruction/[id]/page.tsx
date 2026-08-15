@@ -418,6 +418,14 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                         highlightMatch(0);
                       }, 50);
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchMatches.length > 0) {
+                        e.preventDefault();
+                        const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
+                        setCurrentMatch(next);
+                        highlightMatch(next);
+                      }
+                    }}
                     style={{ paddingLeft: 36, paddingRight: intraSearch ? 32 : 12, fontSize: 13, height: 38, marginBottom: 0 }}
                   />
                   <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-muted)' }} />
@@ -470,9 +478,8 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       {intraSearch.trim().length >= 2 && (
         <button
           onClick={() => {
-            searchContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            searchContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
-          className="btn-primary"
           style={{
             position: 'fixed',
             bottom: 76,
@@ -481,15 +488,21 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: '10px 16px',
-            borderRadius: 24,
-            fontSize: 13,
-            fontWeight: 600,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.55)',
+            padding: '8px 14px',
+            borderRadius: 20,
+            fontSize: 12,
+            fontWeight: 500,
+            background: 'rgba(39, 39, 42, 0.7)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(63, 63, 70, 0.5)',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3)',
             animation: 'fade-in-up 0.25s ease both',
           }}
         >
-          <ArrowUp size={16} />
+          <ArrowUp size={14} />
           <span>К поиску</span>
         </button>
       )}
