@@ -13,7 +13,7 @@ const turndown = new TurndownService({
   codeBlockStyle: 'fenced',
 });
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 const EXT_BY_MIME: Record<string, string> = {
   'image/png': 'png',
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'Файл слишком большой (макс. 10 МБ)' }, { status: 400 });
+      return NextResponse.json({ error: 'Файл слишком большой (макс. 50 МБ)' }, { status: 400 });
     }
 
     const filename = file.name.toLowerCase();
