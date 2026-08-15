@@ -513,14 +513,37 @@ export default function ChatPage() {
       )}
 
       {sessionsOpen && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '80vh', maxHeight: '90vh', minHeight: 320, background: 'var(--bg-elevated)', borderTop: '1px solid var(--border-subtle)', borderRadius: '16px 16px 0 0', zIndex: 95, display: 'flex', flexDirection: 'column', animation: 'edit-slide-in 0.25s var(--ease-out) both' }}>
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '75vh',
+          maxHeight: 'min(80dvh, 80vh)',
+          minHeight: 320,
+          background: 'var(--bg-elevated)',
+          borderTop: '1px solid var(--border-subtle)',
+          borderRadius: '16px 16px 0 0',
+          zIndex: 95,
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'edit-slide-in 0.25s var(--ease-out) both',
+          boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.4)'
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>История чатов</h2>
-            <button onClick={() => setSessionsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+            <button onClick={() => setSessionsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
               <X size={22} />
             </button>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px max(16px, env(safe-area-inset-bottom, 16px))' }}>
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '12px 16px',
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 24px))',
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch'
+          }}>
             {sessions.length === 0 ? (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24 }}>
                 Нет сохранённых чатов
