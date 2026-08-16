@@ -48,7 +48,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [editFullText, setEditFullText] = useState('');
   const [editTag, setEditTag] = useState('general');
 
-  const highlightMatch = useCallback((index: number) => {
+  const highlightMatch = useCallback((index: number, shouldScroll = true) => {
     if (!fullTextRef.current) return;
     const marks = fullTextRef.current.querySelectorAll('mark.search-highlight');
     if (marks.length === 0) return;
@@ -62,7 +62,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       }
     });
 
-    if (marks[index]) {
+    if (shouldScroll && marks[index]) {
       const markEl = marks[index] as HTMLElement;
       const markRect = markEl.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
@@ -96,7 +96,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       }
       setSearchMatches(indices);
       setTimeout(() => {
-        highlightMatch(0);
+        highlightMatch(0, false);
       }, 30);
     }, 120);
   }, [instruction, highlightMatch]);
@@ -430,15 +430,15 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                         if (e.shiftKey) {
                           const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
                           setCurrentMatch(prev);
-                          highlightMatch(prev);
+                          highlightMatch(prev, true);
                         } else {
                           const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
                           setCurrentMatch(next);
-                          highlightMatch(next);
+                          highlightMatch(next, true);
                         }
                       }
                     }}
-                    style={{ paddingLeft: 36, paddingRight: intraSearch ? 32 : 12, fontSize: 16, height: 40, marginBottom: 0 }}
+                    style={{ paddingLeft: 36, paddingRight: 32, fontSize: 16, height: 40, marginBottom: 0 }}
                   />
                   <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-muted)' }} />
                   {intraSearch && (
@@ -450,34 +450,41 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                     </button>
                   )}
                 </div>
-                {searchMatches.length > 1 && (
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
-                        setCurrentMatch(prev);
-                        highlightMatch(prev);
-                      }}
-                      title="Предыдущее совпадение"
-                      style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
-                        setCurrentMatch(next);
-                        highlightMatch(next);
-                      }}
-                      title="Следующее совпадение"
-                      style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
-                    >
-                      ▼
-                    </button>
-                  </div>
-                )}
+                <div style={{
+                  display: 'flex',
+                  gap: 4,
+                  width: searchMatches.length > 1 ? 72 : 0,
+                  opacity: searchMatches.length > 1 ? 1 : 0,
+                  pointerEvents: searchMatches.length > 1 ? 'auto' : 'none',
+                  overflow: 'hidden',
+                  transition: 'width 0.2s var(--ease-out), opacity 0.15s ease',
+                  flexShrink: 0
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
+                      setCurrentMatch(prev);
+                      highlightMatch(prev, true);
+                    }}
+                    title="Предыдущее совпадение"
+                    style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
+                      setCurrentMatch(next);
+                      highlightMatch(next, true);
+                    }}
+                    title="Следующее совпадение"
+                    style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
+                  >
+                    ▼
+                  </button>
+                </div>
               </div>
               <div ref={fullTextRef} style={{ fontSize: 14, lineHeight: 1.6, touchAction: 'pan-y' }}>
                 <MarkdownText content={instruction.fullText} imageSize="full" highlightQuery={debouncedSearch} />
