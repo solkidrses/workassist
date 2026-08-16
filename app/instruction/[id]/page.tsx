@@ -377,7 +377,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
         ) : (
-          <div className="detail-enter">
+          <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
               <span className="zinc-tag">{instruction.tag}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -387,7 +387,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             </div>
 
             {instruction.summary && (
-              <div className="zinc-card detail-enter" style={{ marginBottom: 16, animationDelay: '0.04s' }}>
+              <div className="zinc-card" style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, letterSpacing: 0.3 }}>
                   Краткая суть
                 </div>
@@ -398,7 +398,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             )}
 
             {instruction.photoUrl && (
-              <div className="detail-enter" style={{ marginBottom: 16, animationDelay: '0.08s' }}>
+              <div style={{ marginBottom: 16 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={instruction.photoUrl}

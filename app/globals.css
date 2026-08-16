@@ -28,6 +28,7 @@ html {
   -webkit-text-size-adjust: 100%;
   touch-action: pan-y;
   -webkit-font-smoothing: antialiased;
+  overflow-anchor: none;
 }
 
 body {
@@ -42,6 +43,7 @@ body {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   -webkit-font-smoothing: antialiased;
+  overflow-anchor: none;
 }
 
 a, button, input, textarea {
@@ -118,12 +120,11 @@ a, button {
   font-size: 16px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out), background-color 0.3s var(--ease-out);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .input-field:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 124, 59, 0.12), 0 0 20px rgba(255, 124, 59, 0.08);
   background-color: #1f1f23;
 }
 
