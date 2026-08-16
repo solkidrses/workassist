@@ -250,7 +250,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="page-shell" style={{ paddingBottom: 80 }}>
+    <div className="page-shell" style={{ paddingBottom: 'calc(76px + env(safe-area-inset-bottom, 0px))' }}>
       <div className="header">
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Админка</h1>
       </div>

@@ -49,9 +49,9 @@ export default function ChatPage() {
   const scrollRafRef = useRef<number | null>(null);
   
   const scrollToBottom = useCallback((smooth = true) => {
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
-    }, 40);
+    });
   }, []);
 
   useEffect(() => {
@@ -356,7 +356,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="page-shell" style={{ paddingBottom: 130 }}>
+    <div className="page-shell" style={{ paddingBottom: 'calc(130px + env(safe-area-inset-bottom, 0px))' }}>
       <div className="header">
         <h1
           onClick={() => scrollToBottom(true)}

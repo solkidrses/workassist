@@ -26,13 +26,17 @@ export function CategorySelect({ categories, value, onChange, placeholder = 'Ð’Ñ
   const selected = categories.find(c => c.slug === value || c.id === value)
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent | MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    if (open) {
+      document.addEventListener('pointerdown', handler)
+    }
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [open])
 
   return (

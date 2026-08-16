@@ -202,7 +202,7 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="page-shell" style={{ paddingBottom: 80 }}>
+    <div className="page-shell" style={{ paddingBottom: 'calc(76px + env(safe-area-inset-bottom, 0px))' }}>
       <div className="header">
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>База</h1>
       </div>
@@ -340,7 +340,7 @@ export default function LibraryPage() {
       {role === 'admin' && (
       <Link href="/upload" style={{
         position: 'fixed',
-        bottom: 72,
+        bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
         right: 20,
         width: 52,
         height: 52,
@@ -350,8 +350,10 @@ export default function LibraryPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: '0 4px 12px rgba(255, 124, 59, 0.4)',
-        zIndex: 20
+        boxShadow: '0 4px 14px rgba(255, 124, 59, 0.4)',
+        zIndex: 40,
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
       }}>
         <Plus size={22} />
       </Link>

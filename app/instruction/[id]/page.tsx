@@ -239,7 +239,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   }
 
   return (
-    <div className={`page-shell${fadingOut ? ' fade-out' : ''}`} style={{ paddingBottom: 80 }}>
+    <div className={`page-shell${fadingOut ? ' fade-out' : ''}`} style={{ paddingBottom: 'calc(76px + env(safe-area-inset-bottom, 0px))' }}>
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.push('/')} style={{ color: 'var(--text-main)', display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}><ArrowLeft size={24} /></button>
@@ -426,7 +426,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                         highlightMatch(next);
                       }
                     }}
-                    style={{ paddingLeft: 36, paddingRight: intraSearch ? 32 : 12, fontSize: 13, height: 38, marginBottom: 0 }}
+                    style={{ paddingLeft: 36, paddingRight: intraSearch ? 32 : 12, fontSize: 16, height: 40, marginBottom: 0 }}
                   />
                   <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-muted)' }} />
                   {intraSearch && (

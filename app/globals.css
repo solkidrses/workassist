@@ -22,11 +22,10 @@
 }
 
 html {
-  scroll-behavior: smooth;
-  scrollbar-gutter: stable;
-  overflow-y: scroll;
-  overscroll-behavior: none;
+  overflow-y: auto;
+  overscroll-behavior-y: none;
   background: var(--bg-main);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -37,7 +36,8 @@ body {
   padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 a, button, input, textarea {
@@ -61,7 +61,7 @@ a, button {
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-soft);
-  transition: transform 0.25s var(--ease-out), border-color 0.25s var(--ease-out), background-color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+  transition: transform 0.2s var(--ease-out), border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
 }
 
 @media (hover: hover) {
@@ -73,12 +73,11 @@ a, button {
 }
 
 .zinc-card:active {
-  transform: scale(0.98);
+  transform: scale(0.985);
 }
 
 .zinc-card.card-enter {
-  animation: card-enter 0.28s var(--ease-out) both;
-  will-change: transform, opacity;
+  animation: card-enter 0.24s var(--ease-out) both;
 }
 
 .zinc-card.card-exit {
@@ -179,10 +178,11 @@ a, button {
   position: fixed;
   left: 0;
   right: 0;
-  background: rgba(9, 9, 11, 0.98);
+  background: rgba(9, 9, 11, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-subtle);
-  transform: translateZ(0);
-  will-change: transform;
+  z-index: 50;
 }
 
 .status-banner {
@@ -222,7 +222,7 @@ a, button {
 .message-stack {
   flex: 1;
   padding: 16px;
-  padding-bottom: calc(60px + 80px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(60px + 76px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -257,20 +257,24 @@ a, button {
 }
 
 .composer-bar {
-  bottom: 60px;
-  padding: 14px 16px;
-  z-index: 10;
+  bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 16px;
+  z-index: 45;
 }
 
 .bottom-nav {
   bottom: 0;
-  height: 60px;
+  height: calc(60px + env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: space-around;
-  align-items: center;
-  padding-bottom: max(env(safe-area-inset-bottom), 8px);
-  z-index: 10;
-  background: var(--bg-main);
+  align-items: flex-start;
+  padding-top: 8px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 50;
+  background: rgba(9, 9, 11, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .bottom-nav-link {
@@ -278,9 +282,15 @@ a, button {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-decoration: none;
-  transition: color 0.2s ease, transform 0.2s var(--ease-spring);
+  padding: 4px 16px;
+  border-radius: 8px;
+  transition: color 0.18s ease, transform 0.15s ease, opacity 0.15s ease;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .bottom-nav-link.active {
@@ -288,7 +298,8 @@ a, button {
 }
 
 .bottom-nav-link:active {
-  transform: scale(0.92);
+  transform: scale(0.95);
+  opacity: 0.85;
 }
 
 .pulse-dot {
@@ -343,7 +354,7 @@ a, button {
 
 @keyframes page-enter {
   from {
-    opacity: 0;
+    opacity: 0.85;
   }
   to {
     opacity: 1;
@@ -509,19 +520,24 @@ mark.search-highlight.active-match {
 
 /* ─── Tag Chip ─── */
 .tag-chip {
-  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
   background-color: var(--bg-user-message);
   color: var(--text-muted);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
   padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.25s var(--ease-spring);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .tag-chip:hover {
@@ -532,16 +548,12 @@ mark.search-highlight.active-match {
 .tag-chip.active {
   background-color: var(--accent);
   color: #000;
+  font-weight: 600;
   border-color: transparent;
-  transform: scale(1.05);
 }
 
-.tag-chip.active::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
-  animation: shimmer-tag 1.2s ease-out;
+.tag-chip:active {
+  transform: scale(0.96);
 }
 
 /* ─── Match Bar ─── */
@@ -601,8 +613,8 @@ mark.search-highlight.active-match {
 
 /* ─── Page Transition ─── */
 .page-transition {
-  animation: page-enter 0.25s ease both;
-  min-height: 100vh;
+  animation: page-enter 0.18s ease both;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
