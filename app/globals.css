@@ -16,7 +16,7 @@
 
   --border-radius: 14px;
   --border-subtle: #27272a;
-  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.22);
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.2);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -26,6 +26,8 @@ html {
   overscroll-behavior-y: none;
   background: var(--bg-main);
   -webkit-text-size-adjust: 100%;
+  touch-action: pan-y;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
@@ -38,6 +40,8 @@ body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  -webkit-font-smoothing: antialiased;
 }
 
 a, button, input, textarea {
@@ -61,7 +65,9 @@ a, button {
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-soft);
-  transition: transform 0.2s var(--ease-out), border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100px;
+  transition: transform 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
 }
 
 @media (hover: hover) {
@@ -77,11 +83,11 @@ a, button {
 }
 
 .zinc-card.card-enter {
-  animation: card-enter 0.24s var(--ease-out) both;
+  animation: card-enter 0.2s var(--ease-out) both;
 }
 
 .zinc-card.card-exit {
-  animation: card-exit 0.2s var(--ease-out) both;
+  animation: card-exit 0.18s var(--ease-out) both;
 }
 
 .zinc-tag {
@@ -178,9 +184,7 @@ a, button {
   position: fixed;
   left: 0;
   right: 0;
-  background: rgba(9, 9, 11, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: #09090b;
   border-top: 1px solid var(--border-subtle);
   z-index: 50;
 }
@@ -271,9 +275,7 @@ a, button {
   padding-top: 8px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   z-index: 50;
-  background: rgba(9, 9, 11, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: #09090b;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -401,6 +403,8 @@ mark.search-highlight {
   padding: 1px 4px;
   font-weight: 600;
   transition: all 0.2s ease;
+  scroll-margin-top: 80px;
+  scroll-margin-bottom: 80px;
 }
 
 mark.search-highlight.active-match {

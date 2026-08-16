@@ -177,7 +177,7 @@ function renderMarkdown(text: string, onPhotoClick: (src: string) => void, image
 
     // Regular line
     if (line.trim()) {
-      elements.push(<div key={key++}>{highlightQuery ? highlightText(line, highlightQuery) : line}</div>);
+      elements.push(<div key={key++} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 24px' }}>{highlightQuery ? highlightText(line, highlightQuery) : line}</div>);
     } else {
       elements.push(<div key={key++} style={{ height: 8 }} />);
     }

@@ -58,9 +58,9 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
         const parent = el.closest('div, p, li, strong, code');
         if (parent) {
           parent.classList.remove('tg-highlight-line');
-          // Trigger reflow to restart CSS animation
-          void (parent as HTMLElement).offsetWidth;
-          parent.classList.add('tg-highlight-line');
+          requestAnimationFrame(() => {
+            parent.classList.add('tg-highlight-line');
+          });
           setTimeout(() => {
             parent.classList.remove('tg-highlight-line');
           }, 1800);
@@ -71,7 +71,11 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
     });
 
     if (marks[index]) {
-      marks[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const markEl = marks[index] as HTMLElement;
+      const markRect = markEl.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const targetY = window.scrollY + markRect.top - (viewportHeight / 2);
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     }
   }, []);
 
@@ -381,7 +385,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
 
-            <div ref={searchContainerRef} className="zinc-card detail-enter" style={{ borderLeft: 'none', animationDelay: '0.12s' }}>
+            <div ref={searchContainerRef} className="zinc-card detail-enter" style={{ borderLeft: 'none', animationDelay: '0.12s', scrollMarginTop: 72 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>Полная инструкция</span>
                 {intraSearch.trim().length >= 2 && (
@@ -478,11 +482,15 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       {intraSearch.trim().length >= 2 && (
         <button
           onClick={() => {
-            searchContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const elem = searchContainerRef.current;
+            if (elem) {
+              const top = elem.getBoundingClientRect().top + window.scrollY - 70;
+              window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+            }
           }}
           style={{
             position: 'fixed',
-            bottom: 76,
+            bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
             right: 16,
             zIndex: 85,
             display: 'flex',
@@ -492,14 +500,14 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             borderRadius: 20,
             fontSize: 12,
             fontWeight: 500,
-            background: 'rgba(39, 39, 42, 0.7)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(63, 63, 70, 0.5)',
-            color: 'var(--text-muted)',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-main)',
             cursor: 'pointer',
-            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 2px 14px rgba(0, 0, 0, 0.4)',
             animation: 'fade-in-up 0.25s ease both',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           <ArrowUp size={14} />
