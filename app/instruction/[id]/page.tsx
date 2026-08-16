@@ -443,6 +443,9 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                   <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-muted)' }} />
                   {intraSearch && (
                     <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
                       onClick={() => handleIntraSearchChange('')}
                       style={{ position: 'absolute', right: 8, top: 10, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
                     >
@@ -462,6 +465,8 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                 }}>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
                     onClick={() => {
                       const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
                       setCurrentMatch(prev);
@@ -474,6 +479,8 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                   </button>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
                     onClick={() => {
                       const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
                       setCurrentMatch(next);
