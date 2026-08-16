@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyTelegramInitData } from '@/lib/telegramAuth';
+import { rateLimit } from '@/lib/rateLimit';
 import crypto from 'crypto';
 
 type UserRow = {
@@ -65,6 +66,11 @@ export async function POST(req: Request) {
     const adminTelegramId = process.env.ADMIN_TELEGRAM_ID;
     if (adminTelegramId && telegramId === adminTelegramId) {
       return NextResponse.json({ success: true, data: { status: 'admin', message: 'You are the admin' } });
+    }
+
+    const rl = rateLimit(`access-request:${telegramId}`, 3, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Слишком много заявок. Попробуйте позже.' }, { status: 429 });
     }
 
     const existing = await prisma.$queryRaw<UserRow[]>`

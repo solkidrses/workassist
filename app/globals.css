@@ -234,8 +234,6 @@ a, button {
   max-width: 85%;
   margin: 0;
   animation: fade-in-up 0.22s ease;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 80px;
 }
 
 .message-bubble.assistant {
@@ -307,10 +305,19 @@ a, button {
   height: 8px;
   border-radius: 999px;
   background: var(--accent);
-  box-shadow: 0 0 0 0 rgba(255, 124, 59, 0.4);
-  animation: pulse 1.4s infinite;
   flex-shrink: 0;
   margin-top: 5px;
+  position: relative;
+}
+
+.pulse-dot::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0;
+  animation: pulse 1.4s ease-out infinite;
 }
 
 @keyframes fade-in-up {
@@ -438,17 +445,9 @@ mark.search-highlight.active-match {
 }
 
 @keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 124, 59, 0.4);
-  }
-
-  70% {
-    box-shadow: 0 0 0 10px rgba(255, 124, 59, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 124, 59, 0);
-  }
+  0% { transform: scale(0.5); opacity: 0.5; }
+  70% { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(0.5); opacity: 0; }
 }
 
 @keyframes detail-fade-in {

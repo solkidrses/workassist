@@ -68,7 +68,7 @@ export async function GET(req: Request) {
     }
 
     if (!hasEmbeddingsKey || results.length === 0) {
-      // Keyword-based text search fallback with strict matching
+      // Keyword-based text search fallback — SQL ILIKE filtering (no full table scan into Node.js)
       const stopWords = new Set(['как', 'что', 'где', 'почему', 'зачем', 'чем', 'для', 'это', 'так', 'или', 'the', 'how', 'what', 'where', 'why']);
       const words = query.trim().split(/\s+/)
         .map(w => w.replace(/[^\wа-яё]/gi, '').toLowerCase())
@@ -78,31 +78,36 @@ export async function GET(req: Request) {
         return NextResponse.json({ success: true, data: results });
       }
 
-      const allRows = await prisma.$queryRaw<(SearchResultRow & { fullText: string })[]>`
-        SELECT id, title, summary, tag, "createdAt", "fullText"
-        FROM instructions
-      `;
+      // Build parameterized OR conditions — each word gets one $N placeholder used in 3 ILIKE checks
+      // PostgreSQL does the filtering; fullText is NOT selected, saving memory
+      const orConditions = words
+        .map((_, i) => `(title ILIKE $${i + 1} OR summary ILIKE $${i + 1} OR "fullText" ILIKE $${i + 1})`)
+        .join(' OR ');
+      const params = words.map(w => `%${w}%`);
 
-      const textResults = allRows
+      const matchedRows = await prisma.$queryRawUnsafe<SearchResultRow[]>(
+        `SELECT id, title, summary, tag, "createdAt"
+         FROM instructions
+         WHERE ${orConditions}
+         LIMIT 30`,
+        ...params
+      );
+
+      const textResults = matchedRows
         .map((row) => {
-          const title = row.title.toLowerCase();
-          const summary = (row.summary || '').toLowerCase();
-          const fullText = (row.fullText || '').toLowerCase();
-
+          const tl = row.title.toLowerCase();
+          const sl = (row.summary || '').toLowerCase();
           let score = 0;
           for (const w of words) {
-            if (title.includes(w)) score += 1.0;
-            else if (summary.includes(w)) score += 0.6;
-            else if (fullText.includes(w)) score += 0.3;
+            if (tl.includes(w)) score += 1.0;
+            else if (sl.includes(w)) score += 0.6;
+            else score += 0.3; // matched fullText — confirmed by SQL filter above
           }
-
-          const similarity = Math.min(score / words.length, 1);
-          return { ...row, similarity };
+          return { ...row, similarity: Math.min(score / words.length, 1) };
         })
-        .filter(r => (r.similarity ?? 0) >= 0.1 && Math.round((r.similarity ?? 0) * 100) > 0)
+        .filter(r => Math.round((r.similarity ?? 0) * 100) > 0)
         .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
-        .slice(0, 10)
-        .map(({ fullText: _ft, ...rest }) => rest);
+        .slice(0, 10);
 
       if (results.length === 0) {
         results = textResults;

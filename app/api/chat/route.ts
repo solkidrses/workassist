@@ -49,6 +49,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
     }
 
+    if (lastMessage.content.length > 8000) {
+      return NextResponse.json({ error: 'Сообщение слишком длинное (макс. 8000 символов)' }, { status: 400 });
+    }
+
+    if (imageBase64 && imageBase64.length > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Фото слишком большое (макс. ~7 МБ)' }, { status: 400 });
+    }
+
     // If image provided, use SiliconFlow Qwen3.5-9B to extract text/error description
     let imageContext = '';
     if (imageBase64) {
@@ -165,12 +173,10 @@ export async function POST(req: Request) {
             .filter(w => w.length > 2 && !stopWords.has(w));
 
           if (words.length > 0) {
-            const likeConditions = words.map(() => `title ILIKE $1 OR summary ILIKE $1 OR "fullText" ILIKE $1`).join(' OR ');
-            const params = words.map(w => `%${w}%`);
-            const paramPlaceholders = words.map((_, i) => `$${i + 1}`).join(', ');
             const conditions = words.map((_, i) => 
               `(title ILIKE $${i + 1} OR summary ILIKE $${i + 1} OR "fullText" ILIKE $${i + 1})`
             ).join(' OR ');
+            const params = words.map(w => `%${w}%`);
             
             const rawResults = await prisma.$queryRawUnsafe<RetrievedInstruction[]>(
               `SELECT id, title, summary, "fullText", tag, "createdAt", "photoUrl"

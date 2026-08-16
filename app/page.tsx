@@ -53,7 +53,7 @@ export default function LibraryPage() {
       .then(r => r.json())
       .then(data => { if (data.success) setCategories(data.data); })
       .catch(() => {});
-  }, [isTelegramReady, JSON.stringify(authHeaders)]);
+  }, [isTelegramReady, authHeaders]);
 
   const fetchInstructions = useCallback(async () => {
     if (!isTelegramReady) {
@@ -312,7 +312,7 @@ export default function LibraryPage() {
               >
                 <div
                   className="zinc-card card-enter"
-                  style={{ animationDelay: `${0.02 + i * 0.04}s` }}
+                  style={{ animationDelay: `${Math.min(0.02 + i * 0.04, 0.4)}s` }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{inst.title}</h3>
