@@ -148,7 +148,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (photoUrl) {
       const filename = photoUrl.split('/').pop();
       if (filename) {
-        const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
+        const filePath = path.join(process.cwd(), 'data', 'uploads', filename);
         try {
           await unlink(filePath);
         } catch {

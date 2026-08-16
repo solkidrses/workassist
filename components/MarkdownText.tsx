@@ -48,13 +48,6 @@ function highlightText(text: string, query: string): React.ReactNode {
       <mark
         key={i}
         className="search-highlight"
-        style={{
-          backgroundColor: 'var(--accent)',
-          color: '#000',
-          borderRadius: 3,
-          padding: '1px 3px',
-          fontWeight: 600,
-        }}
       >
         {part}
       </mark>

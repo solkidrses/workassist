@@ -36,10 +36,12 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [photoViewer, setPhotoViewer] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [intraSearch, setIntraSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [searchMatches, setSearchMatches] = useState<number[]>([]);
   const [currentMatch, setCurrentMatch] = useState(0);
   const fullTextRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [editTitle, setEditTitle] = useState('');
   const [editSummary, setEditSummary] = useState('');
@@ -55,16 +57,6 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       const el = m as HTMLElement;
       if (idx === index) {
         el.classList.add('active-match');
-        const parent = el.closest('div, p, li, strong, code');
-        if (parent) {
-          parent.classList.remove('tg-highlight-line');
-          requestAnimationFrame(() => {
-            parent.classList.add('tg-highlight-line');
-          });
-          setTimeout(() => {
-            parent.classList.remove('tg-highlight-line');
-          }, 1800);
-        }
       } else {
         el.classList.remove('active-match');
       }
@@ -78,6 +70,36 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     }
   }, []);
+
+  const handleIntraSearchChange = useCallback((value: string) => {
+    setIntraSearch(value);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    if (value.trim().length < 2) {
+      setDebouncedSearch('');
+      setSearchMatches([]);
+      setCurrentMatch(0);
+      return;
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(value);
+      setCurrentMatch(0);
+      if (!instruction) return;
+      const text = instruction.fullText.toLowerCase();
+      const query = value.toLowerCase();
+      const indices: number[] = [];
+      let pos = 0;
+      while ((pos = text.indexOf(query, pos)) !== -1) {
+        indices.push(pos);
+        pos += query.length;
+      }
+      setSearchMatches(indices);
+      setTimeout(() => {
+        highlightMatch(0);
+      }, 30);
+    }, 120);
+  }, [instruction, highlightMatch]);
 
   useEffect(() => {
     if (!isTelegramReady) return;
@@ -401,33 +423,19 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                     className="input-field"
                     placeholder="Поиск внутри инструкции..."
                     value={intraSearch}
-                    onChange={(e) => {
-                      const q = e.target.value;
-                      setIntraSearch(q);
-                      setCurrentMatch(0);
-                      if (q.trim().length < 2) {
-                        setSearchMatches([]);
-                        return;
-                      }
-                      const text = instruction.fullText.toLowerCase();
-                      const query = q.toLowerCase();
-                      const indices: number[] = [];
-                      let pos = 0;
-                      while ((pos = text.indexOf(query, pos)) !== -1) {
-                        indices.push(pos);
-                        pos += query.length;
-                      }
-                      setSearchMatches(indices);
-                      setTimeout(() => {
-                        highlightMatch(0);
-                      }, 50);
-                    }}
+                    onChange={(e) => handleIntraSearchChange(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && searchMatches.length > 0) {
                         e.preventDefault();
-                        const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
-                        setCurrentMatch(next);
-                        highlightMatch(next);
+                        if (e.shiftKey) {
+                          const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
+                          setCurrentMatch(prev);
+                          highlightMatch(prev);
+                        } else {
+                          const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
+                          setCurrentMatch(next);
+                          highlightMatch(next);
+                        }
                       }
                     }}
                     style={{ paddingLeft: 36, paddingRight: intraSearch ? 32 : 12, fontSize: 16, height: 40, marginBottom: 0 }}
@@ -435,7 +443,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                   <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-muted)' }} />
                   {intraSearch && (
                     <button
-                      onClick={() => { setIntraSearch(''); setSearchMatches([]); setCurrentMatch(0); }}
+                      onClick={() => handleIntraSearchChange('')}
                       style={{ position: 'absolute', right: 8, top: 10, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
                     >
                       <X size={16} />
@@ -447,9 +455,9 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                     <button
                       type="button"
                       onClick={() => {
-                        const next = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
-                        setCurrentMatch(next);
-                        highlightMatch(next);
+                        const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
+                        setCurrentMatch(prev);
+                        highlightMatch(prev);
                       }}
                       title="Предыдущее совпадение"
                       style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
@@ -472,7 +480,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                 )}
               </div>
               <div ref={fullTextRef} style={{ fontSize: 14, lineHeight: 1.6 }}>
-                <MarkdownText content={instruction.fullText} imageSize="full" highlightQuery={intraSearch} />
+                <MarkdownText content={instruction.fullText} imageSize="full" highlightQuery={debouncedSearch} />
               </div>
             </div>
           </div>
