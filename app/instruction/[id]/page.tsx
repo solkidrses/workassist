@@ -3,11 +3,12 @@
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Save, Calendar, X, Search as SearchIcon } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Save, Calendar, X, Search as SearchIcon, ArrowUp } from 'lucide-react';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { CategorySelect } from '@/components/CategorySelect';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 import MarkdownText from '@/components/MarkdownText';
+import FloatingActionButton from '@/components/FloatingActionButton';
 
 type Instruction = {
   id: string;
@@ -409,10 +410,10 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
 
-            <div ref={searchContainerRef} className="zinc-card" style={{ borderLeft: 'none', scrollMarginTop: 72, touchAction: 'pan-y' }}>
+            <div ref={searchContainerRef} className="zinc-card search-header" style={{ borderLeft: 'none', scrollMarginTop: 72, touchAction: 'pan-y' }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 16 }}>
                 <span>Полная инструкция</span>
-                <span style={{ fontSize: 12, color: searchMatches.length > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 500 }}>
+                <span className="match-count" style={{ fontSize: 12, color: searchMatches.length > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 500 }}>
                   {intraSearch.trim().length >= 2 ? (searchMatches.length > 0 ? `${currentMatch + 1} из ${searchMatches.length}` : 'Нет совпадений') : ''}
                 </span>
               </div>
@@ -444,19 +445,18 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                     style={{ paddingLeft: 36, paddingRight: 32, fontSize: 16, height: 40, marginBottom: 0 }}
                   />
                   <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--text-muted)', pointerEvents: 'none' }} />
-                  {intraSearch && (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onTouchStart={(e) => e.preventDefault()}
-                      onClick={() => handleIntraSearchChange('')}
-                      style={{ position: 'absolute', right: 8, top: 10, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
+                    onClick={() => handleIntraSearchChange('')}
+                    className="clear-btn"
+                    style={{ position: 'absolute', right: 8, top: 10, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', visibility: intraSearch ? 'visible' : 'hidden' }}
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
-                <div style={{
+                <div className="nav-btns" style={{
                   display: 'flex',
                   gap: 4,
                   width: 72,
