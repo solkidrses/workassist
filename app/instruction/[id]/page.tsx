@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Save, Calendar, X, Search as SearchIcon, ArrowUp } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Save, Calendar, X, Search as SearchIcon } from 'lucide-react';
 import { useAccessCheck } from '@/lib/AccessProvider';
 import { CategorySelect } from '@/components/CategorySelect';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
@@ -56,8 +56,8 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
     marks.forEach((m, idx) => {
       const el = m as HTMLElement;
       if (idx === index) {
-        el.classList.add('active-match');
-      } else {
+        if (!el.classList.contains('active-match')) el.classList.add('active-match');
+      } else if (el.classList.contains('active-match')) {
         el.classList.remove('active-match');
       }
     });
@@ -95,10 +95,12 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
         pos += query.length;
       }
       setSearchMatches(indices);
-      setTimeout(() => {
-        highlightMatch(0, false);
-      }, 30);
-    }, 120);
+      if (indices.length > 0) {
+        setTimeout(() => {
+          highlightMatch(0, false);
+        }, 50);
+      }
+    }, 150);
   }, [instruction, highlightMatch]);
 
   useEffect(() => {
@@ -408,15 +410,13 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
             )}
 
             <div ref={searchContainerRef} className="zinc-card" style={{ borderLeft: 'none', scrollMarginTop: 72, touchAction: 'pan-y' }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 16 }}>
                 <span>Полная инструкция</span>
-                {intraSearch.trim().length >= 2 && (
-                  <span style={{ fontSize: 12, color: searchMatches.length > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 500 }}>
-                    {searchMatches.length > 0 ? `${currentMatch + 1} из ${searchMatches.length}` : 'Нет совпадений'}
-                  </span>
-                )}
+                <span style={{ fontSize: 12, color: searchMatches.length > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 500 }}>
+                  {intraSearch.trim().length >= 2 ? (searchMatches.length > 0 ? `${currentMatch + 1} из ${searchMatches.length}` : 'Нет совпадений') : ''}
+                </span>
               </div>
-              <div style={{ position: 'relative', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ position: 'relative', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ position: 'relative', flex: 1 }}>
                   <input
                     type="text"
@@ -424,6 +424,9 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                     placeholder="Поиск внутри инструкции..."
                     value={intraSearch}
                     onChange={(e) => handleIntraSearchChange(e.target.value)}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && searchMatches.length > 0) {
                         e.preventDefault();
@@ -440,7 +443,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                     }}
                     style={{ paddingLeft: 36, paddingRight: 32, fontSize: 16, height: 40, marginBottom: 0 }}
                   />
-                  <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-muted)' }} />
+                  <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--text-muted)', pointerEvents: 'none' }} />
                   {intraSearch && (
                     <button
                       type="button"
@@ -456,12 +459,11 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                 <div style={{
                   display: 'flex',
                   gap: 4,
-                  width: searchMatches.length > 1 ? 72 : 0,
+                  width: 72,
+                  flexShrink: 0,
                   opacity: searchMatches.length > 1 ? 1 : 0,
                   pointerEvents: searchMatches.length > 1 ? 'auto' : 'none',
-                  overflow: 'hidden',
-                  transition: 'width 0.2s var(--ease-out), opacity 0.15s ease',
-                  flexShrink: 0
+                  transition: 'opacity 0.15s ease',
                 }}>
                   <button
                     type="button"
@@ -473,7 +475,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                       highlightMatch(prev, true);
                     }}
                     title="Предыдущее совпадение"
-                    style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
+                    style={{ height: 40, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
                   >
                     ▲
                   </button>
@@ -487,7 +489,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                       highlightMatch(next, true);
                     }}
                     title="Следующее совпадение"
-                    style={{ height: 38, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
+                    style={{ height: 40, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
                   >
                     ▼
                   </button>
@@ -500,42 +502,6 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
       </div>
-
-      {intraSearch.trim().length >= 2 && (
-        <button
-          onClick={() => {
-            const elem = searchContainerRef.current;
-            if (elem) {
-              const top = elem.getBoundingClientRect().top + window.scrollY - 70;
-              window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-            }
-          }}
-          style={{
-            position: 'fixed',
-            bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
-            right: 16,
-            zIndex: 85,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 14px',
-            borderRadius: 20,
-            fontSize: 12,
-            fontWeight: 500,
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--text-main)',
-            cursor: 'pointer',
-            boxShadow: '0 2px 14px rgba(0, 0, 0, 0.4)',
-            animation: 'fade-in-up 0.25s ease both',
-            touchAction: 'manipulation',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          <ArrowUp size={14} />
-          <span>К поиску</span>
-        </button>
-      )}
 
       {photoViewer && createPortal(
         <div
