@@ -45,10 +45,7 @@ function highlightText(text: string, query: string): React.ReactNode {
 
   return parts.map((part, i) =>
     regex.test(part) ? (
-      <mark
-        key={i}
-        className="search-highlight"
-      >
+      <mark key={i} className="search-highlight">
         {part}
       </mark>
     ) : (
@@ -57,123 +54,176 @@ function highlightText(text: string, query: string): React.ReactNode {
   );
 }
 
-function renderMarkdown(text: string, onPhotoClick: (src: string) => void, imageSize: 'thumb' | 'full', highlightQuery?: string): React.ReactNode[] {
-  const lines = text.split('\n');
-  const elements: React.ReactNode[] = [];
+function parseInline(
+  text: string,
+  onPhotoClick: (src: string) => void,
+  imageSize: 'thumb' | 'full',
+  highlightQuery?: string
+): React.ReactNode[] {
+  const tokenRegex = /(!\[([^\]]*)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)/g;
+  const nodes: React.ReactNode[] = [];
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
   let key = 0;
 
-  for (const line of lines) {
-    // Image: ![alt](url)
-    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-    if (imgMatch) {
-      const imgStyle: React.CSSProperties = imageSize === 'full'
-        ? { width: '100%', height: 'auto', borderRadius: 10, cursor: 'pointer', display: 'block' }
-        : { width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' };
-      const wrapperStyle = imageSize === 'full'
-        ? { marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden' }
-        : { marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden', width: 120, height: 120 };
-      elements.push(
-        <div key={key++} style={wrapperStyle}>
+  while ((match = tokenRegex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      const plain = text.slice(lastIdx, match.index);
+      nodes.push(
+        <React.Fragment key={key++}>
+          {highlightQuery ? highlightText(plain, highlightQuery) : plain}
+        </React.Fragment>
+      );
+    }
+
+    if (match[1]) {
+      // Standalone/inline image
+      const alt = match[2];
+      const src = match[3];
+      nodes.push(
+        <span
+          key={key++}
+          style={{
+            display: imageSize === 'full' ? 'block' : 'inline-block',
+            verticalAlign: 'middle',
+            margin: '6px 0',
+            borderRadius: 8,
+            overflow: 'hidden',
+            width: imageSize === 'full' ? '100%' : 110,
+            height: imageSize === 'full' ? 'auto' : 110,
+          }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imgMatch[2]} alt={imgMatch[1]} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgMatch[2])} style={imgStyle} />
+          <img
+            src={src}
+            alt={alt}
+            loading="lazy"
+            decoding="async"
+            onClick={() => onPhotoClick(src)}
+            style={{
+              width: '100%',
+              height: imageSize === 'full' ? 'auto' : '100%',
+              objectFit: imageSize === 'full' ? 'contain' : 'cover',
+              cursor: 'pointer',
+              display: 'block',
+              borderRadius: 8,
+            }}
+          />
+        </span>
+      );
+    } else if (match[4]) {
+      // Bold text
+      const boldContent = match[5];
+      nodes.push(
+        <strong key={key++} style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+          {highlightQuery ? highlightText(boldContent, highlightQuery) : boldContent}
+        </strong>
+      );
+    } else if (match[6]) {
+      // Code snippet
+      const codeContent = match[7];
+      nodes.push(
+        <code
+          key={key++}
+          style={{
+            backgroundColor: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            padding: '2px 6px',
+            borderRadius: 4,
+            fontSize: 13,
+            fontFamily: 'monospace',
+          }}
+        >
+          {highlightQuery ? highlightText(codeContent, highlightQuery) : codeContent}
+        </code>
+      );
+    }
+
+    lastIdx = match.index + match[0].length;
+  }
+
+  if (lastIdx < text.length) {
+    const plain = text.slice(lastIdx);
+    nodes.push(
+      <React.Fragment key={key++}>
+        {highlightQuery ? highlightText(plain, highlightQuery) : plain}
+      </React.Fragment>
+    );
+  }
+
+  return nodes;
+}
+
+function renderMarkdown(
+  text: string,
+  onPhotoClick: (src: string) => void,
+  imageSize: 'thumb' | 'full',
+  highlightQuery?: string
+): React.ReactNode[] {
+  if (!text) return [];
+
+  const rawBlocks = text.split(/\n\s*\n/);
+  const elements: React.ReactNode[] = [];
+  let blockKey = 0;
+
+  for (const block of rawBlocks) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+
+    // Standalone image block
+    const singleImgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (singleImgMatch) {
+      const alt = singleImgMatch[1];
+      const src = singleImgMatch[2];
+      const imgStyle: React.CSSProperties =
+        imageSize === 'full'
+          ? { width: '100%', height: 'auto', borderRadius: 10, cursor: 'pointer', display: 'block' }
+          : { width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' };
+      const wrapperStyle =
+        imageSize === 'full'
+          ? { margin: '10px 0', borderRadius: 10, overflow: 'hidden' }
+          : { margin: '10px 0', borderRadius: 10, overflow: 'hidden', width: 120, height: 120 };
+
+      elements.push(
+        <div key={blockKey++} style={wrapperStyle}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={alt}
+            loading="lazy"
+            decoding="async"
+            onClick={() => onPhotoClick(src)}
+            style={imgStyle}
+          />
         </div>
       );
       continue;
     }
 
-    // Inline image within text
-    const inlineImgPattern = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    if (inlineImgPattern.test(line)) {
-      inlineImgPattern.lastIndex = 0;
-      const parts: React.ReactNode[] = [];
-      let imgLastIdx = 0;
-      let imgPartKey = 0;
-      let imgMatch: RegExpExecArray | null;
-      while ((imgMatch = inlineImgPattern.exec(line)) !== null) {
-        if (!imgMatch) continue;
-        if (imgMatch.index > imgLastIdx) {
-          const sliceText = line.slice(imgLastIdx, imgMatch.index);
-          parts.push(<React.Fragment key={imgPartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
-        }
-        const imgSrc = imgMatch[2];
-        const imgAlt = imgMatch[1];
-        parts.push(
-          <span key={imgPartKey++} style={{ display: 'inline-block', verticalAlign: 'middle', margin: '4px 0', borderRadius: 8, overflow: 'hidden', width: imageSize === 'full' ? '100%' : 100, height: imageSize === 'full' ? 'auto' : 100 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imgSrc} alt={imgAlt} loading="lazy" decoding="async" onClick={() => onPhotoClick(imgSrc)} style={{ width: '100%', height: imageSize === 'full' ? 'auto' : '100%', objectFit: imageSize === 'full' ? 'contain' : 'cover', cursor: 'pointer' }} />
-          </span>
-        );
-        imgLastIdx = imgMatch.index + imgMatch[0].length;
-      }
-      if (imgLastIdx < line.length) {
-        const sliceText = line.slice(imgLastIdx);
-        parts.push(<React.Fragment key={imgPartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
-      }
-      elements.push(<div key={key++}>{parts}</div>);
-      continue;
-    }
+    // Paragraph block
+    const lines = trimmed.split('\n');
+    const paragraphChildren: React.ReactNode[] = [];
 
-    // Bold **text**
-    const boldParts: React.ReactNode[] = [];
-    const boldPattern = /\*\*([^*]+)\*\*/g;
-    let boldLastIdx = 0;
-    let boldPartKey = 0;
-    let boldMatch: RegExpExecArray | null;
-    while ((boldMatch = boldPattern.exec(line)) !== null) {
-      if (!boldMatch) continue;
-      if (boldMatch.index > boldLastIdx) {
-        const sliceText = line.slice(boldLastIdx, boldMatch.index);
-        boldParts.push(<React.Fragment key={boldPartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
+    lines.forEach((line, lineIdx) => {
+      if (lineIdx > 0) {
+        paragraphChildren.push(<br key={`br-${lineIdx}`} />);
       }
-      const boldContent = boldMatch[1];
-      boldParts.push(<strong key={boldPartKey++}>{highlightQuery ? highlightText(boldContent, highlightQuery) : boldContent}</strong>);
-      boldLastIdx = boldMatch.index + boldMatch[0].length;
-    }
-    if (boldLastIdx < line.length) {
-      const sliceText = line.slice(boldLastIdx);
-      boldParts.push(<React.Fragment key={boldPartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
-    }
-    if (boldParts.length > 0) {
-      elements.push(<div key={key++}>{boldParts}</div>);
-      continue;
-    }
+      const inlineNodes = parseInline(line, onPhotoClick, imageSize, highlightQuery);
+      paragraphChildren.push(...inlineNodes);
+    });
 
-    // Code block `code`
-    const codeParts: React.ReactNode[] = [];
-    const codePattern = /`([^`]+)`/g;
-    let codeLastIdx = 0;
-    let codePartKey = 0;
-    let codeMatch: RegExpExecArray | null;
-    let hasCode = false;
-    while ((codeMatch = codePattern.exec(line)) !== null) {
-      if (!codeMatch) continue;
-      if (codeMatch.index > codeLastIdx) {
-        const sliceText = line.slice(codeLastIdx, codeMatch.index);
-        codeParts.push(<React.Fragment key={codePartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
-      }
-      codeParts.push(
-        <code key={codePartKey++} style={{ backgroundColor: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: 4, fontSize: 13, fontFamily: 'monospace' }}>
-          {codeMatch[1]}
-        </code>
-      );
-      codeLastIdx = codeMatch.index + codeMatch[0].length;
-      hasCode = true;
-    }
-    if (hasCode) {
-      if (codeLastIdx < line.length) {
-        const sliceText = line.slice(codeLastIdx);
-        codeParts.push(<React.Fragment key={codePartKey++}>{highlightQuery ? highlightText(sliceText, highlightQuery) : sliceText}</React.Fragment>);
-      }
-      elements.push(<div key={key++}>{codeParts}</div>);
-      continue;
-    }
-
-    // Regular line
-    if (line.trim()) {
-      elements.push(<div key={key++} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 24px' }}>{highlightQuery ? highlightText(line, highlightQuery) : line}</div>);
-    } else {
-      elements.push(<div key={key++} style={{ height: 8 }} />);
-    }
+    elements.push(
+      <p
+        key={blockKey++}
+        style={{
+          margin: '0 0 12px 0',
+          lineHeight: 1.65,
+          wordBreak: 'break-word',
+        }}
+      >
+        {paragraphChildren}
+      </p>
+    );
   }
 
   return elements;
@@ -193,6 +243,7 @@ function MarkdownText({
     () => renderMarkdown(content, setPhotoSrc, imageSize, highlightQuery),
     [content, imageSize, highlightQuery]
   );
+
   return (
     <>
       {rendered}

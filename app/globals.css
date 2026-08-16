@@ -65,8 +65,6 @@ a, button {
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-soft);
-  content-visibility: auto;
-  contain-intrinsic-size: auto 100px;
   transition: transform 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
 }
 
@@ -483,13 +481,11 @@ mark.search-highlight.active-match {
 }
 
 .detail-enter {
-  animation: detail-fade-in 0.28s var(--ease-out) both;
-  will-change: transform, opacity;
+  animation: detail-fade-in 0.22s var(--ease-out) both;
 }
 
 .edit-enter {
-  animation: edit-slide-in 0.25s var(--ease-out) both;
-  will-change: transform, opacity;
+  animation: edit-slide-in 0.22s var(--ease-out) both;
 }
 
 .fade-out {

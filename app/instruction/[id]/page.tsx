@@ -107,7 +107,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
       .then(r => r.json())
       .then(data => { if (data.success && data.data.length > 0) setTagOptions(data.data); })
       .catch(() => {});
-  }, [isTelegramReady, JSON.stringify(authHeaders)]);
+  }, [isTelegramReady, authHeaders]);
 
   const fetchInstruction = useCallback(async () => {
     if (!isTelegramReady) {
@@ -407,7 +407,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
 
-            <div ref={searchContainerRef} className="zinc-card detail-enter" style={{ borderLeft: 'none', animationDelay: '0.12s', scrollMarginTop: 72 }}>
+            <div ref={searchContainerRef} className="zinc-card" style={{ borderLeft: 'none', scrollMarginTop: 72, touchAction: 'pan-y' }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>Полная инструкция</span>
                 {intraSearch.trim().length >= 2 && (
@@ -479,7 +479,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                   </div>
                 )}
               </div>
-              <div ref={fullTextRef} style={{ fontSize: 14, lineHeight: 1.6 }}>
+              <div ref={fullTextRef} style={{ fontSize: 14, lineHeight: 1.6, touchAction: 'pan-y' }}>
                 <MarkdownText content={instruction.fullText} imageSize="full" highlightQuery={debouncedSearch} />
               </div>
             </div>
