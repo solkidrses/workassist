@@ -26,7 +26,9 @@ export async function middleware(request: NextRequest) {
   const hasSession = await verifySessionEdge(cookieHeader)
 
   if (hasSession) {
-    return NextResponse.next()
+    const res = NextResponse.next();
+    res.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+    return res;
   }
 
   // No valid session — return a bootstrap page
@@ -81,15 +83,18 @@ export async function middleware(request: NextRequest) {
     })();
   </script>
 </body>
-</html>`
+</html>`;
 
-  return new NextResponse(html, {
+  const response = new NextResponse(html, {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet',
     },
-  })
+  });
+
+  return response;
 }
 
 export const config = {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authorizeRequest, requireAdmin, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
+import { signPhotoPath, signMarkdownPhotos } from '@/lib/photoSign';
 import OpenAI from 'openai';
 import { unlink } from 'fs/promises';
 import path from 'path';
@@ -47,7 +48,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Instruction not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: results[0] });
+    const item = results[0];
+    if (item.photoUrl) {
+      item.photoUrl = signPhotoPath(item.photoUrl);
+    }
+    if (item.fullText) {
+      item.fullText = signMarkdownPhotos(item.fullText);
+    }
+
+    return NextResponse.json({ success: true, data: item });
   } catch (error) {
     console.error('Fetch Instruction Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -1,6 +1,8 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { NextResponse } from 'next/server';
+import { verifyPhotoSignature } from '@/lib/photoSign';
+import { authorizeRequest } from '@/lib/requestAuth';
 
 export async function GET(
   req: Request,
@@ -10,6 +12,20 @@ export async function GET(
 
   if (!/^[\w\-.]+$/.test(name)) {
     return NextResponse.json({ error: 'Invalid filename' }, { status: 400 });
+  }
+
+  // Check access:
+  // 1. Valid signed URL parameter: ?sig=...
+  // 2. Or valid Telegram request authentication
+  const url = new URL(req.url);
+  const sig = url.searchParams.get('sig');
+  const isSigned = verifyPhotoSignature(name, sig);
+
+  if (!isSigned) {
+    const auth = await authorizeRequest(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: 'Access denied: valid signature or session required' }, { status: 403 });
+    }
   }
 
   const filePath = path.join(process.cwd(), 'data', 'uploads', name);
@@ -27,6 +43,7 @@ export async function GET(
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=3600',
+        'X-Robots-Tag': 'noindex, nofollow',
       },
     });
   } catch {
