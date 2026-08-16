@@ -8,7 +8,6 @@ import { useAccessCheck } from '@/lib/AccessProvider';
 import { CategorySelect } from '@/components/CategorySelect';
 import { NoAccessScreen } from '@/components/NoAccessScreen';
 import MarkdownText from '@/components/MarkdownText';
-import FloatingActionButton from '@/components/FloatingActionButton';
 
 type Instruction = {
   id: string;
@@ -40,6 +39,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [searchMatches, setSearchMatches] = useState<number[]>([]);
   const [currentMatch, setCurrentMatch] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const fullTextRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,6 +48,18 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [editSummary, setEditSummary] = useState('');
   const [editFullText, setEditFullText] = useState('');
   const [editTag, setEditTag] = useState('general');
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 250 || intraSearch.trim().length >= 2) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [intraSearch]);
 
   const highlightMatch = useCallback((index: number, shouldScroll = true) => {
     if (!fullTextRef.current) return;
@@ -410,14 +422,14 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
 
-            <div ref={searchContainerRef} className="zinc-card search-header" style={{ borderLeft: 'none', scrollMarginTop: 72, touchAction: 'pan-y' }}>
+            <div ref={searchContainerRef} className="zinc-card" style={{ borderLeft: 'none', scrollMarginTop: 72, touchAction: 'pan-y' }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 16 }}>
                 <span>Полная инструкция</span>
-                <span className="match-count" style={{ fontSize: 12, color: searchMatches.length > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 500 }}>
+                <span style={{ fontSize: 12, color: searchMatches.length > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 500 }}>
                   {intraSearch.trim().length >= 2 ? (searchMatches.length > 0 ? `${currentMatch + 1} из ${searchMatches.length}` : 'Нет совпадений') : ''}
                 </span>
               </div>
-              <div style={{ position: 'relative', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ position: 'relative', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ position: 'relative', flex: 1 }}>
                   <input
                     type="text"
@@ -442,58 +454,57 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                         }
                       }
                     }}
-                    style={{ paddingLeft: 36, paddingRight: 32, fontSize: 16, height: 40, marginBottom: 0 }}
+                    style={{ paddingLeft: 36, paddingRight: intraSearch ? 32 : 12, fontSize: 16, height: 40, marginBottom: 0 }}
                   />
                   <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--text-muted)', pointerEvents: 'none' }} />
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onTouchStart={(e) => e.preventDefault()}
-                    onClick={() => handleIntraSearchChange('')}
-                    className="clear-btn"
-                    style={{ position: 'absolute', right: 8, top: 10, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', visibility: intraSearch ? 'visible' : 'hidden' }}
-                  >
-                    <X size={16} />
-                  </button>
+                  {intraSearch && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      onClick={() => handleIntraSearchChange('')}
+                      style={{ position: 'absolute', right: 8, top: 10, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
-                <div className="nav-btns" style={{
-                  display: 'flex',
-                  gap: 4,
-                  width: 72,
-                  flexShrink: 0,
-                  opacity: searchMatches.length > 1 ? 1 : 0,
-                  pointerEvents: searchMatches.length > 1 ? 'auto' : 'none',
-                  transition: 'opacity 0.15s ease',
-                }}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onTouchStart={(e) => e.preventDefault()}
-                    onClick={() => {
-                      const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
-                      setCurrentMatch(prev);
-                      highlightMatch(prev, true);
-                    }}
-                    title="Предыдущее совпадение"
-                    style={{ height: 40, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
-                  >
-                    ▲
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onTouchStart={(e) => e.preventDefault()}
-                    onClick={() => {
-                      const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
-                      setCurrentMatch(next);
-                      highlightMatch(next, true);
-                    }}
-                    title="Следующее совпадение"
-                    style={{ height: 40, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
-                  >
-                    ▼
-                  </button>
-                </div>
+                {searchMatches.length > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    gap: 4,
+                    flexShrink: 0,
+                  }}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      onClick={() => {
+                        const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
+                        setCurrentMatch(prev);
+                        highlightMatch(prev, true);
+                      }}
+                      title="Предыдущее совпадение"
+                      style={{ height: 40, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      onClick={() => {
+                        const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
+                        setCurrentMatch(next);
+                        highlightMatch(next, true);
+                      }}
+                      title="Следующее совпадение"
+                      style={{ height: 40, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                )}
               </div>
               <div ref={fullTextRef} style={{ fontSize: 14, lineHeight: 1.6, touchAction: 'pan-y' }}>
                 <MarkdownText content={instruction.fullText} imageSize="full" highlightQuery={debouncedSearch} />
@@ -502,6 +513,45 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
       </div>
+
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={() => {
+            const elem = searchContainerRef.current;
+            if (elem) {
+              const top = elem.getBoundingClientRect().top + window.scrollY - 70;
+              window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+            } else {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+          style={{
+            position: 'fixed',
+            bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+            right: 16,
+            zIndex: 85,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            borderRadius: 20,
+            fontSize: 12,
+            fontWeight: 500,
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-main)',
+            cursor: 'pointer',
+            boxShadow: '0 2px 14px rgba(0, 0, 0, 0.4)',
+            animation: 'fade-in-up 0.25s ease both',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <ArrowUp size={14} />
+          <span>К поиску</span>
+        </button>
+      )}
 
       {photoViewer && createPortal(
         <div

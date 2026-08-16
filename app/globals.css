@@ -67,18 +67,22 @@ a, button {
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-soft);
-  transition: transform 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
+  transition: opacity 0.15s var(--ease-out);
 }
 
 @media (hover: hover) {
-  .zinc-card:hover {
+  a.zinc-card:hover,
+  button.zinc-card:hover,
+  .zinc-card.clickable:hover {
     transform: translateY(-2px);
     background-color: #16171a;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   }
 }
 
-.zinc-card:active {
+a.zinc-card:active,
+button.zinc-card:active,
+.zinc-card.clickable:active {
   transform: scale(0.985);
 }
 
@@ -617,40 +621,6 @@ mark.search-highlight.active-match {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  }
-
-/* Floating Action Button */
-.floating-action-btn {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-elevated);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 1000;
-}
-.floating-action-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
-
-/* Search Header fixes */
-.search-header {
-  position: relative;
-  height: 56px;
-  display: flex;
-  align-items: center;
-}
-.search-header .match-count {
-  min-width: 80px;
-  text-align: right;
 }
 
 @media (prefers-reduced-motion: reduce) {
