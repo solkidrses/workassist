@@ -27,6 +27,9 @@ type InstructionUpdateRow = {
   updatedAt: string;
 };
 
+const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY;
+const siliconflow = new OpenAI({ apiKey: SILICONFLOW_API_KEY || 'dummy_key', baseURL: 'https://api.siliconflow.com/v1' });
+
 // Demo instruction for local testing when database is offline
 const DEV_DEMO_INSTRUCTION: InstructionRow = {
   id: 'demo',
@@ -140,17 +143,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: `Tag too long (max ${MAX_TAG} chars)` }, { status: 400 });
     }
 
-    // Regenerate embedding if text fields changed and API key is available
-    const hasEmbeddingsKey = process.env.EMBEDDINGS_API_KEY && process.env.EMBEDDINGS_API_KEY !== 'dummy_key';
+    // Regenerate embedding if text fields changed and API key is available.
+    // Must use the same embedding model as the rest of the app, otherwise the
+    // vector space mixes and semantic search returns garbage for this row.
+    const hasEmbeddingsKey = Boolean(SILICONFLOW_API_KEY && SILICONFLOW_API_KEY !== 'dummy_key');
     let embeddingStr: string | null = null;
 
     if (hasEmbeddingsKey && (title || summary || fullText)) {
       try {
-        const openai = new OpenAI({ apiKey: process.env.EMBEDDINGS_API_KEY! });
         const embeddingInput = `${summary || ''}\n\n${fullText || ''}`;
-        const embeddingResponse = await openai.embeddings.create({
-          model: 'text-embedding-3-small',
+        const embeddingResponse = await siliconflow.embeddings.create({
+          model: 'Qwen/Qwen3-Embedding-4B',
           input: embeddingInput,
+          dimensions: 1536,
         });
         const embedding = embeddingResponse.data[0].embedding;
         embeddingStr = `[${embedding.join(',')}]`;

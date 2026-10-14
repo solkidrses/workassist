@@ -7,11 +7,13 @@ const PUBLIC_PATHS = ['/api/auth', '/api/access-request', '/api/photos']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow static assets and Next.js internals
+  // Allow static assets and Next.js internals.
+  // The dot check must never apply to /api/* — otherwise any future API route
+  // with a dot in its path would silently bypass the session check.
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    pathname.includes('.')
+    (pathname.includes('.') && !pathname.startsWith('/api/'))
   ) {
     return NextResponse.next()
   }

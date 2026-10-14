@@ -10,8 +10,12 @@ git pull origin main
 echo "Rebuilding containers..."
 sudo docker compose up -d --build
 
+echo "Cleaning Docker cache..."
+sudo docker builder prune -f
+sudo docker image prune -f
+
 echo "Running DB migration..."
-sudo docker compose exec app npx prisma db push --accept-data-loss 2>/dev/null || true
+sudo docker compose exec app npx prisma migrate deploy || sudo docker compose exec app npx prisma db push || true
 
 echo "Done!"
 sudo docker compose ps

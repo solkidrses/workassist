@@ -153,7 +153,7 @@ sleep 10
 
 # --- Initialize database ---
 echo -e "${CYAN}Initializing database...${NC}"
-sudo docker compose exec -T app npx prisma db push 2>&1 || true
+sudo docker compose exec -T app npx prisma migrate deploy 2>/dev/null || sudo docker compose exec -T app npx prisma db push 2>&1 || true
 echo -e "${GREEN}  Database initialized${NC}"
 
 # --- Done ---

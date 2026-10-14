@@ -42,7 +42,9 @@ function parseTelegramUser(initDataString: string): { id: string; username: stri
 }
 
 export async function authorizeRequest(req: Request): Promise<AuthResult> {
-  if (process.env.NODE_ENV !== 'production') {
+  // Дев-байпас только по явному флагу (и вне production): потерянный
+  // NODE_ENV=production не должен превращать всё API в открытый админ-доступ.
+  if (process.env.NODE_ENV !== 'production' && process.env.ALLOW_DEV_BYPASS === '1') {
     return {
       ok: true,
       user: { telegramId: 'dev', role: 'admin', status: 'approved', username: 'dev', firstName: 'Dev' },

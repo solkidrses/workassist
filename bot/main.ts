@@ -183,7 +183,17 @@ bot.on("message:text", async (ctx) => {
   }
 });
 
+// Кнопки одобрения приходят только в личный чат админа, но проверяем нажавшего явно:
+// пересланное сообщение в группе не должно позволять чужому управлять доступом
+function isAdminCallback(ctx: { from?: { id: number } }): boolean {
+  return Boolean(ADMIN_TELEGRAM_ID) && String(ctx.from?.id) === ADMIN_TELEGRAM_ID;
+}
+
 bot.callbackQuery(/^approve:(.+)$/, async (ctx) => {
+  if (!isAdminCallback(ctx)) {
+    await ctx.answerCallbackQuery({ text: "Недостаточно прав" });
+    return;
+  }
   const telegramId = ctx.match[1];
   try {
     await prisma.$executeRaw`UPDATE users SET status = 'approved', "updatedAt" = NOW() WHERE "telegramId" = ${telegramId}`;
@@ -198,6 +208,10 @@ bot.callbackQuery(/^approve:(.+)$/, async (ctx) => {
 });
 
 bot.callbackQuery(/^reject:(.+)$/, async (ctx) => {
+  if (!isAdminCallback(ctx)) {
+    await ctx.answerCallbackQuery({ text: "Недостаточно прав" });
+    return;
+  }
   const telegramId = ctx.match[1];
   try {
     await prisma.$executeRaw`UPDATE users SET status = 'rejected', "updatedAt" = NOW() WHERE "telegramId" = ${telegramId}`;
@@ -211,6 +225,10 @@ bot.callbackQuery(/^reject:(.+)$/, async (ctx) => {
 });
 
 bot.callbackQuery(/^ban:(.+)$/, async (ctx) => {
+  if (!isAdminCallback(ctx)) {
+    await ctx.answerCallbackQuery({ text: "Недостаточно прав" });
+    return;
+  }
   const telegramId = ctx.match[1];
   try {
     await prisma.$executeRaw`UPDATE users SET status = 'banned', "updatedAt" = NOW() WHERE "telegramId" = ${telegramId}`;

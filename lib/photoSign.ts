@@ -1,7 +1,13 @@
 import crypto from 'crypto';
 
 function getPhotoSecret(): string {
-  return process.env.BOT_TOKEN || process.env.INTERNAL_API_KEY || 'workassist-photo-secret-salt-2026';
+  const secret = process.env.BOT_TOKEN || process.env.INTERNAL_API_KEY
+    || (process.env.NODE_ENV !== 'production' ? 'workassist-photo-secret-salt-2026' : '');
+  if (!secret) {
+    // В production без секрета подписи становятся подделываемыми — падаем явно
+    throw new Error('BOT_TOKEN or INTERNAL_API_KEY is required for photo signatures');
+  }
+  return secret;
 }
 
 export function createPhotoSignature(filename: string): string {
