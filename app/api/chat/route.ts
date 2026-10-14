@@ -69,7 +69,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Для распознавания фото нужен SiliconFlow API ключ (SILICONFLOW_API_KEY)' }, { status: 500 });
       }
       try {
-        const visionResponse = await siliconflow.chat.completions.create({
+        // enable_thinking: false — параметр SiliconFlow, которого нет в типах OpenAI SDK.
+        // Без него Qwen3.5 сначала «думает» (reasoning) и не укладывается в таймаут,
+        // а reasoning-токены съедают лимит max_tokens.
+        const visionBody: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming & { enable_thinking?: boolean } = {
           model: 'Qwen/Qwen3.5-9B',
           messages: [
             {
@@ -84,8 +87,10 @@ export async function POST(req: Request) {
               ],
             },
           ],
-          max_tokens: 1000,
-        });
+          max_tokens: 1500,
+          enable_thinking: false,
+        };
+        const visionResponse = await siliconflow.chat.completions.create(visionBody, { timeout: 120_000, maxRetries: 0 });
         imageContext = visionResponse.choices[0]?.message?.content || '';
         if (imageContext) {
           lastMessage.content = `${lastMessage.content}\n\n[Текст со скриншота]:\n${imageContext}`;
