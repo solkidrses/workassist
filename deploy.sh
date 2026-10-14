@@ -104,7 +104,7 @@ server {
     listen 80;
     server_name ${DOMAIN};
 
-    client_max_body_size 15M;
+    client_max_body_size 30M;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -116,6 +116,10 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_cache_bypass \$http_upgrade;
+
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
     }
 }
 NGINX

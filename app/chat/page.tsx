@@ -25,6 +25,56 @@ type ChatSession = {
   id: string;
   title: string;
   createdAt: string;
+};
+
+function optimizeImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (!dataUrl) {
+        resolve('');
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1400;
+        let { width, height } = img;
+
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(dataUrl);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(compressed);
+        } catch {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function ChatPage() {
@@ -71,25 +121,24 @@ export default function ChatPage() {
     return () => window.removeEventListener('scroll-chat-to-bottom', handleScrollToBottom);
   }, [scrollToBottom]);
 
-  // Paste image from clipboard (Ctrl+V / mobile paste)
+  // Paste image from clipboard (Ctrl+V / mobile paste) with auto-optimization
   useEffect(() => {
-    const handlePaste = (e: ClipboardEvent) => {
+    const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of items) {
         if (item.type.startsWith('image/')) {
           const file = item.getAsFile();
           if (!file) continue;
-          if (file.size > 10 * 1024 * 1024) {
-            alert('Фото слишком большое (макс. 10 МБ)');
+          if (file.size > 20 * 1024 * 1024) {
+            alert('Фото слишком большое (макс. 20 МБ)');
             return;
           }
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            setPendingImage(event.target?.result as string);
-          };
-          reader.readAsDataURL(file);
           e.preventDefault();
+          const optimized = await optimizeImage(file);
+          if (optimized) {
+            setPendingImage(optimized);
+          }
           break;
         }
       }
@@ -235,18 +284,17 @@ export default function ChatPage() {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Фото слишком большое (макс. 10 МБ)');
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Фото слишком большое (макс. 20 МБ)');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setPendingImage(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    const optimized = await optimizeImage(file);
+    if (optimized) {
+      setPendingImage(optimized);
+    }
     e.target.value = '';
   };
 
@@ -284,8 +332,22 @@ export default function ChatPage() {
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errData.error || `HTTP ${response.status}`);
+        let errorMsg = `Ошибка HTTP ${response.status}`;
+        try {
+          const errData = await response.json();
+          if (errData?.error) errorMsg = errData.error;
+        } catch {
+          if (response.status === 504) {
+            errorMsg = 'Время ожидания ответа истекло (таймаут сервера). Попробуйте отправить фото ещё раз.';
+          } else if (response.status === 413) {
+            errorMsg = 'Изображение слишком большое для сервера.';
+          } else if (response.status === 429) {
+            errorMsg = 'Слишком много запросов. Пожалуйста, подождите минуту.';
+          } else if (response.status === 502) {
+            errorMsg = 'Сервер временно недоступен (502 Bad Gateway).';
+          }
+        }
+        throw new Error(errorMsg);
       }
 
       if (!response.body) throw new Error('No response body');

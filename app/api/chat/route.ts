@@ -23,12 +23,17 @@ type RetrievedInstruction = {
 
 const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY;
 const SILICONFLOW_BASE_URL = 'https://api.siliconflow.com/v1';
-const siliconflow = new OpenAI({ apiKey: SILICONFLOW_API_KEY || 'dummy_key', baseURL: SILICONFLOW_BASE_URL });
+const siliconflow = new OpenAI({ 
+  apiKey: SILICONFLOW_API_KEY || 'dummy_key', 
+  baseURL: SILICONFLOW_BASE_URL,
+  timeout: 45_000,
+  maxRetries: 1,
+});
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 
-export const maxDuration = 60; // Allow 60s for streaming
+export const maxDuration = 120; // Allow 120s for vision OCR + streaming
 
 export async function POST(req: Request) {
   try {
@@ -85,9 +90,14 @@ export async function POST(req: Request) {
         if (imageContext) {
           lastMessage.content = `${lastMessage.content}\n\n[Текст со скриншота]:\n${imageContext}`;
         }
-      } catch (e) {
+      } catch (e: unknown) {
         console.error('Vision API error:', e);
-        return NextResponse.json({ error: 'Не удалось распознать фото. Попробуйте ещё раз.' }, { status: 500 });
+        const errObj = e as { name?: string; message?: string };
+        const isTimeout = errObj?.name === 'APIConnectionTimeoutError' || errObj?.message?.includes('timeout');
+        const errorMsg = isTimeout
+          ? 'Нейросеть распознавания не ответила вовремя. Попробуйте отправить фото ещё раз.'
+          : 'Не удалось распознать фото. Попробуйте ещё раз.';
+        return NextResponse.json({ error: errorMsg }, { status: 500 });
       }
     }
 
