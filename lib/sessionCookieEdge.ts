@@ -36,8 +36,8 @@ export async function verifySessionEdge(cookieHeader: string | null): Promise<bo
     return false
   }
 
-  const botToken = process.env.BOT_TOKEN
-  if (!botToken) return false
+  const botToken = process.env.BOT_TOKEN || (process.env.NODE_ENV !== 'production' ? 'dev-fallback-bot-token-secret' : '');
+  if (!botToken) return false;
 
   const expectedSig = await hmacHex(botToken, `${telegramId}:${expires}`)
   if (sig.length !== expectedSig.length) return false

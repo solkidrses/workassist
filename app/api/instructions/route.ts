@@ -31,6 +31,21 @@ export async function GET(req: Request) {
 
   } catch (error) {
     console.error('List Instructions Error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      return NextResponse.json({
+        success: true,
+        data: [
+          {
+            id: 'demo',
+            title: 'Инструкция по настройке сервиса и безопасности',
+            summary: 'Пошаговое руководство по авторизации, ключам и параметрам доступа',
+            tag: 'general',
+            createdAt: new Date().toISOString(),
+            sourceType: 'bot_text',
+          },
+        ],
+      });
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

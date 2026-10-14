@@ -4,7 +4,7 @@ const COOKIE_NAME = 'wa_session';
 const MAX_AGE_SECONDS = 7200; // 2h
 
 function getKey(): string {
-  const key = process.env.BOT_TOKEN;
+  const key = process.env.BOT_TOKEN || (process.env.NODE_ENV !== 'production' ? 'dev-fallback-bot-token-secret' : '');
   if (!key) throw new Error('BOT_TOKEN is required for session signing');
   return key;
 }

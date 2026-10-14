@@ -37,8 +37,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
   const [requestError, setRequestError] = useState<string | null>(null);
   const [intraSearch, setIntraSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [searchMatches, setSearchMatches] = useState<number[]>([]);
-  const [currentMatch, setCurrentMatch] = useState(0);
+  const [matchedBlocksCount, setMatchedBlocksCount] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const fullTextRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -51,7 +50,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 250 || intraSearch.trim().length >= 2) {
+      if (window.scrollY > 250) {
         setShowScrollTop(true);
       } else {
         setShowScrollTop(false);
@@ -59,29 +58,6 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [intraSearch]);
-
-  const highlightMatch = useCallback((index: number, shouldScroll = true) => {
-    if (!fullTextRef.current) return;
-    const marks = fullTextRef.current.querySelectorAll('mark.search-highlight');
-    if (marks.length === 0) return;
-
-    marks.forEach((m, idx) => {
-      const el = m as HTMLElement;
-      if (idx === index) {
-        if (!el.classList.contains('active-match')) el.classList.add('active-match');
-      } else if (el.classList.contains('active-match')) {
-        el.classList.remove('active-match');
-      }
-    });
-
-    if (shouldScroll && marks[index]) {
-      const markEl = marks[index] as HTMLElement;
-      const markRect = markEl.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const targetY = window.scrollY + markRect.top - (viewportHeight / 2);
-      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-    }
   }, []);
 
   const handleIntraSearchChange = useCallback((value: string) => {
@@ -91,30 +67,22 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
     }
     if (value.trim().length < 2) {
       setDebouncedSearch('');
-      setSearchMatches([]);
-      setCurrentMatch(0);
+      setMatchedBlocksCount(null);
       return;
     }
     debounceTimerRef.current = setTimeout(() => {
       setDebouncedSearch(value);
-      setCurrentMatch(0);
-      if (!instruction) return;
-      const text = instruction.fullText.toLowerCase();
-      const query = value.toLowerCase();
-      const indices: number[] = [];
-      let pos = 0;
-      while ((pos = text.indexOf(query, pos)) !== -1) {
-        indices.push(pos);
-        pos += query.length;
-      }
-      setSearchMatches(indices);
-      if (indices.length > 0) {
-        setTimeout(() => {
-          highlightMatch(0, false);
-        }, 50);
-      }
     }, 150);
-  }, [instruction, highlightMatch]);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setIntraSearch('');
+    setDebouncedSearch('');
+    setMatchedBlocksCount(null);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isTelegramReady) return;
@@ -424,10 +392,26 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
 
             <div ref={searchContainerRef} className="zinc-card" style={{ borderLeft: 'none', scrollMarginTop: 72, touchAction: 'pan-y' }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: 0.3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 16 }}>
-                <span>Полная инструкция</span>
-                <span style={{ fontSize: 12, color: searchMatches.length > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 500 }}>
-                  {intraSearch.trim().length >= 2 ? (searchMatches.length > 0 ? `${currentMatch + 1} из ${searchMatches.length}` : 'Нет совпадений') : ''}
-                </span>
+                <span>{debouncedSearch.trim().length >= 2 ? 'Результаты поиска' : 'Полная инструкция'}</span>
+                {debouncedSearch.trim().length >= 2 && (
+                  <span
+                    key={`count-${matchedBlocksCount}`}
+                    style={{
+                      fontSize: 12,
+                      color: (matchedBlocksCount ?? 0) > 0 ? 'var(--accent)' : 'var(--text-muted)',
+                      fontWeight: 500,
+                      animation: 'count-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1) both',
+                    }}
+                  >
+                    {(matchedBlocksCount ?? 0) > 0
+                      ? (matchedBlocksCount === 1
+                          ? 'Найдена 1 запись'
+                          : ((matchedBlocksCount! % 10 >= 2 && matchedBlocksCount! % 10 <= 4) && (matchedBlocksCount! % 100 < 10 || matchedBlocksCount! % 100 >= 20)
+                              ? `Найдено ${matchedBlocksCount} записи`
+                              : `Найдено записей: ${matchedBlocksCount}`))
+                      : 'Нет совпадений'}
+                  </span>
+                )}
               </div>
               <div style={{ position: 'relative', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ position: 'relative', flex: 1 }}>
@@ -440,20 +424,6 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                     autoComplete="off"
                     autoCorrect="off"
                     spellCheck={false}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && searchMatches.length > 0) {
-                        e.preventDefault();
-                        if (e.shiftKey) {
-                          const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
-                          setCurrentMatch(prev);
-                          highlightMatch(prev, true);
-                        } else {
-                          const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
-                          setCurrentMatch(next);
-                          highlightMatch(next, true);
-                        }
-                      }
-                    }}
                     style={{ paddingLeft: 36, paddingRight: intraSearch ? 32 : 12, fontSize: 16, height: 40, marginBottom: 0 }}
                   />
                   <SearchIcon size={16} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--text-muted)', pointerEvents: 'none' }} />
@@ -462,52 +432,23 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onTouchStart={(e) => e.preventDefault()}
-                      onClick={() => handleIntraSearchChange('')}
+                      onClick={handleClearSearch}
+                      title="Очистить поиск"
                       style={{ position: 'absolute', right: 8, top: 10, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
                     >
                       <X size={16} />
                     </button>
                   )}
                 </div>
-                {searchMatches.length > 1 && (
-                  <div style={{
-                    display: 'flex',
-                    gap: 4,
-                    flexShrink: 0,
-                  }}>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onTouchStart={(e) => e.preventDefault()}
-                      onClick={() => {
-                        const prev = currentMatch <= 0 ? searchMatches.length - 1 : currentMatch - 1;
-                        setCurrentMatch(prev);
-                        highlightMatch(prev, true);
-                      }}
-                      title="Предыдущее совпадение"
-                      style={{ height: 40, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onTouchStart={(e) => e.preventDefault()}
-                      onClick={() => {
-                        const next = currentMatch >= searchMatches.length - 1 ? 0 : currentMatch + 1;
-                        setCurrentMatch(next);
-                        highlightMatch(next, true);
-                      }}
-                      title="Следующее совпадение"
-                      style={{ height: 40, width: 34, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}
-                    >
-                      ▼
-                    </button>
-                  </div>
-                )}
               </div>
               <div ref={fullTextRef} style={{ fontSize: 14, lineHeight: 1.6, touchAction: 'pan-y' }}>
-                <MarkdownText content={instruction.fullText} imageSize="full" highlightQuery={debouncedSearch} />
+                <MarkdownText
+                  content={instruction.fullText}
+                  imageSize="full"
+                  highlightQuery={debouncedSearch}
+                  onClearSearch={handleClearSearch}
+                  onMatchesCountChange={setMatchedBlocksCount}
+                />
               </div>
             </div>
           </div>

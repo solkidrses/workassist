@@ -27,15 +27,58 @@ type InstructionUpdateRow = {
   updatedAt: string;
 };
 
+// Demo instruction for local testing when database is offline
+const DEV_DEMO_INSTRUCTION: InstructionRow = {
+  id: 'demo',
+  title: 'Инструкция по настройке сервиса и безопасности',
+  summary: 'Пошаговое руководство по авторизации, ключам и параметрам доступа',
+  fullText: `# Руководство по настройке сервиса
+
+Добро пожаловать в рабочую инструкцию. Здесь описаны основные этапы работы с системой.
+
+### Вводная часть
+Перед началом убедитесь, что у вас есть доступ к корпоративной сети и стабильное интернет-соединение.
+В случае технических неполадок обратитесь в дежурный чат техподдержки.
+
+### Шаг 1: Авторизация и пароль
+1. Откройте панель входа в систему по выданной вам ссылке.
+2. В первом поле укажите ваш рабочий адрес электронной почты.
+3. Введите временный пароль, полученный в приветственном письме от администратора.
+4. При первом входе обязательно измените временный пароль на новый сложный пароль.
+
+### Шаг 2: Настройка безопасного профиля
+Перейдите в раздел «Безопасность» в правом верхнем углу интерфейса.
+Включите двухфакторную аутентификацию для защиты аккаунта.
+Сохраните резервные коды доступа в надежном месте (например, в менеджере паролей).
+
+### Шаг 3: Синхронизация данных
+Нажмите кнопку «Синхронизировать» на главной странице приложения.
+Дождитесь завершения процесса и появления сообщения об успешном обновлении базы.
+
+### Важные правила безопасности
+- Никогда не сообщайте свой личный пароль коллегам или посторонним лицам.
+- Если вы забыли пароль, воспользуйтесь функцией «Сбросить пароль» на экране входа.
+- Регулярно обновляйте клиентское приложение до последней актуальной версии.`,
+  tag: 'general',
+  sourceType: 'bot_text',
+  photoUrl: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 // GET /api/instructions/[id]
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  if (id === 'demo' && process.env.NODE_ENV !== 'production') {
+    return NextResponse.json({ success: true, data: DEV_DEMO_INSTRUCTION });
+  }
+
   try {
     const auth = await authorizeRequest(req);
     if (!auth.ok) {
       return NextResponse.json({ error: TELEGRAM_AUTH_ERROR, code: auth.code }, { status: 403 });
     }
-
-    const { id } = await params;
 
     const results = await prisma.$queryRaw<InstructionRow[]>`
       SELECT id, title, summary, "fullText", tag, "sourceType", "photoUrl", "createdAt", "updatedAt"
@@ -45,6 +88,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     `;
 
     if (!results || results.length === 0) {
+      if (process.env.NODE_ENV !== 'production') {
+        return NextResponse.json({ success: true, data: { ...DEV_DEMO_INSTRUCTION, id } });
+      }
       return NextResponse.json({ error: 'Instruction not found' }, { status: 404 });
     }
 
@@ -59,6 +105,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ success: true, data: item });
   } catch (error) {
     console.error('Fetch Instruction Error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      return NextResponse.json({ success: true, data: { ...DEV_DEMO_INSTRUCTION, id } });
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

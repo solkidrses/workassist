@@ -32,8 +32,20 @@ export function useAccessCheck(): AccessContextValue {
 
 export function AccessProvider({ children }: { children: React.ReactNode }) {
   const { authHeaders, isTelegramReady, authError } = useTelegramInitData();
-  const [access, setAccess] = useState<AccessState>('loading');
-  const [role, setRole] = useState<UserRole>(null);
+  const [access, setAccess] = useState<AccessState>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem('wa_cached_access');
+      if (cached === 'ok') return 'ok';
+    }
+    return process.env.NODE_ENV !== 'production' ? 'ok' : 'loading';
+  });
+  const [role, setRole] = useState<UserRole>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem('wa_cached_role');
+      if (cached === 'admin' || cached === 'viewer') return cached;
+    }
+    return process.env.NODE_ENV !== 'production' ? 'admin' : null;
+  });
   const [requestStatus, setRequestStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,8 +57,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json().catch(() => null);
 
         if (res.ok && data?.success) {
-          setRole(data.data.role === 'admin' ? 'admin' : 'viewer');
+          const newRole: UserRole = data.data.role === 'admin' ? 'admin' : 'viewer';
+          setRole(newRole);
           setAccess('ok');
+          try {
+            sessionStorage.setItem('wa_cached_role', newRole);
+            sessionStorage.setItem('wa_cached_access', 'ok');
+          } catch {}
           return;
         }
 
@@ -54,8 +71,19 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         else if (data?.code === 'REJECTED') setAccess('rejected');
         else if (data?.code === 'BANNED') setAccess('no_access');
         else setAccess('no_access');
+
+        try {
+          sessionStorage.removeItem('wa_cached_role');
+          sessionStorage.removeItem('wa_cached_access');
+        } catch {}
       } catch {
-        setAccess('no_access');
+        try {
+          if (sessionStorage.getItem('wa_cached_access') !== 'ok') {
+            setAccess('no_access');
+          }
+        } catch {
+          setAccess('no_access');
+        }
       }
     };
 

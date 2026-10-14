@@ -21,33 +21,35 @@ export default function BottomNav() {
 
   return (
     <nav className="panel-fixed bottom-nav" aria-label="Основная навигация">
-      {items.map(({ href, label, icon: Icon, match }) => {
-        const isActive = match(pathname);
-        return (
-          <Link
-            key={href}
-            href={href}
-            onClick={(e) => {
-              if (isActive) {
-                if (href === '/chat') {
-                  window.dispatchEvent(new CustomEvent('scroll-chat-to-bottom'));
-                } else {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+      <div className="bottom-nav-inner">
+        {items.map(({ href, label, icon: Icon, match }) => {
+          const isActive = match(pathname);
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={(e) => {
+                if (isActive) {
+                  if (href === '/chat') {
+                    window.dispatchEvent(new CustomEvent('scroll-chat-to-bottom'));
+                  } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                } else if (href === '/chat') {
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('scroll-chat-to-bottom'));
+                  }, 100);
                 }
-              } else if (href === '/chat') {
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('scroll-chat-to-bottom'));
-                }, 100);
-              }
-            }}
-            className={`bottom-nav-link ${isActive ? 'active' : ''}`}
-            aria-current={isActive ? 'page' : undefined}
-          >
-            <Icon size={22} style={{ pointerEvents: 'none', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, marginTop: 3, fontWeight: isActive ? 600 : 400, pointerEvents: 'none', lineHeight: 1 }}>{label}</span>
-          </Link>
-        );
-      })}
+              }}
+              className={`bottom-nav-link ${isActive ? 'active' : ''}`}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <Icon size={22} style={{ pointerEvents: 'none', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, marginTop: 3, fontWeight: isActive ? 600 : 400, pointerEvents: 'none', lineHeight: 1, display: 'block', width: '100%', textAlign: 'center', whiteSpace: 'nowrap' }}>{label}</span>
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

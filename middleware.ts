@@ -21,6 +21,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // In development, allow localhost access without requiring Telegram WebApp wrapper
+  if (process.env.NODE_ENV !== 'production') {
+    const res = NextResponse.next();
+    res.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+    return res;
+  }
+
   // For all other routes (pages and API), check session cookie
   const cookieHeader = request.headers.get('cookie')
   const hasSession = await verifySessionEdge(cookieHeader)

@@ -29,6 +29,7 @@ html {
   touch-action: pan-y;
   -webkit-font-smoothing: antialiased;
   overflow-anchor: none;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -267,29 +268,44 @@ button.zinc-card:active,
   z-index: 45;
 }
 
-.bottom-nav {
+.bottom-nav,
+.bottom-nav-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
+  z-index: 50;
+  background: #09090b;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.bottom-nav-inner {
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
   height: calc(60px + env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: space-around;
   align-items: flex-start;
   padding-top: 8px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  z-index: 50;
-  background: #09090b;
-  border-top: 1px solid var(--border-subtle);
+  padding-left: clamp(12px, 4vw, 24px);
+  padding-right: clamp(12px, 4vw, 24px);
 }
 
 .bottom-nav-link {
   color: var(--text-muted);
+  flex: 1;
+  max-width: 96px;
+  min-width: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  padding: 4px 16px;
+  padding: 4px 0;
   border-radius: 8px;
-  transition: color 0.18s ease, transform 0.15s ease, opacity 0.15s ease;
+  transition: color 0.18s ease, opacity 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
@@ -301,8 +317,7 @@ button.zinc-card:active,
 }
 
 .bottom-nav-link:active {
-  transform: scale(0.95);
-  opacity: 0.85;
+  opacity: 0.75;
 }
 
 .pulse-dot {
@@ -406,15 +421,101 @@ button.zinc-card:active,
   }
 }
 
+@keyframes scan-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes tech-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tech-word {
+  0% {
+    background-color: transparent;
+    box-shadow: 0 0 0 rgba(255, 124, 59, 0);
+    outline: 1px solid var(--accent);
+  }
+  50% {
+    background-color: var(--accent);
+    color: #000;
+    box-shadow: 0 0 14px rgba(255, 124, 59, 0.7);
+  }
+  100% {
+    background-color: rgba(255, 124, 59, 0.35);
+    color: #fff;
+    box-shadow: none;
+    outline: 1px solid transparent;
+  }
+}
+
+@keyframes count-pop {
+  from { transform: scale(0.88); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.filtered-record-card {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 14px 14px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  animation: tech-fade-in 0.3s ease-out both;
+  animation-delay: calc(var(--record-index, 0) * 60ms);
+}
+
+.filtered-record-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  transform-origin: top;
+  animation: bar-grow 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--record-index, 0) * 60ms);
+}
+
+.filtered-record-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 124, 59, 0.12),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  animation: scan-shimmer 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation-delay: calc(var(--record-index, 0) * 60ms + 100ms);
+}
+
 mark.search-highlight {
-  background-color: rgba(251, 146, 60, 0.3);
+  background-color: rgba(255, 124, 59, 0.35);
   color: #fff;
-  border-radius: 2px;
-  padding: 0 2px;
+  border-radius: 3px;
+  padding: 1px 4px;
   font-weight: 600;
   transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   scroll-margin-top: 80px;
   scroll-margin-bottom: 80px;
+  animation: tech-word 0.7s ease-out both;
 }
 
 mark.search-highlight.active-match {
