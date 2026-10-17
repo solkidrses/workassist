@@ -84,6 +84,35 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
     }
   }, []);
 
+  // Клик по карточке «Запись N»: сбрасываем фильтр, показываем полную
+  // инструкцию и скроллим к соответствующему абзацу (data-para-index).
+  // Без стейта: ждём перерендер через rAF и скроллим императивно.
+  const handleJumpToBlock = useCallback((paraIndex: number) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    setIntraSearch('');
+    setDebouncedSearch('');
+    setMatchedBlocksCount(null);
+
+    const tryScroll = (attempts: number) => {
+      const el = fullTextRef.current?.querySelector<HTMLElement>(`[data-para-index="${paraIndex}"]`);
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 70;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        el.classList.remove('jump-flash');
+        void el.offsetWidth; // перезапуск анимации, если вспышка уже играла
+        el.classList.add('jump-flash');
+        window.setTimeout(() => el.classList.remove('jump-flash'), 2600);
+        return;
+      }
+      if (attempts > 0) {
+        requestAnimationFrame(() => tryScroll(attempts - 1));
+      }
+    };
+    requestAnimationFrame(() => tryScroll(30));
+  }, []);
+
   useEffect(() => {
     if (!isTelegramReady) return;
     fetch('/api/categories', { headers: authHeaders, cache: 'no-store' })
@@ -448,6 +477,7 @@ export default function InstructionDetailPage({ params }: { params: Promise<{ id
                   highlightQuery={debouncedSearch}
                   onClearSearch={handleClearSearch}
                   onMatchesCountChange={setMatchedBlocksCount}
+                  onJumpToBlock={handleJumpToBlock}
                 />
               </div>
             </div>

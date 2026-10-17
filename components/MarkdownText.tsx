@@ -1,13 +1,16 @@
 'use client'
 
-import React, { useState, useMemo, memo, useEffect } from 'react';
+import React, { useState, useMemo, memo, useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import { ChevronRight } from 'lucide-react';
+
+const subscribeNoop = () => () => {};
 
 function PhotoOverlay({ src, onClose }: { src: string; onClose: () => void }) {
-  const [mounted, setMounted] = useState(false);
+  // Классический is-client снапшот без setState в effect
+  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
 
   useEffect(() => {
-    setMounted(true);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prevOverflow; };
@@ -102,7 +105,7 @@ function parseInline(
             alt={alt}
             loading="lazy"
             decoding="async"
-            onClick={() => onPhotoClick(src)}
+            onClick={(e) => { e.stopPropagation(); onPhotoClick(src); }}
             style={{
               width: '100%',
               height: imageSize === 'full' ? 'auto' : '100%',
@@ -213,6 +216,27 @@ function matchesSearch(text: string, query: string): boolean {
   return text.toLowerCase().includes(q);
 }
 
+function collapseWs(s: string): string {
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+// Каждому структурному блоку (из splitIntoBlocks) сопоставляем индекс абзаца
+// полной инструкции (разбитие по пустым строкам). Нужно, чтобы карточка поиска
+// знала, к какому месту полной версии прыгать.
+function buildParaIndexOfBlock(text: string): number[] {
+  const rawParas = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  const collapsedParas = rawParas.map(collapseWs);
+  const allBlocks = splitIntoBlocks(text);
+  const paraIndexOf: number[] = [];
+  let p = 0;
+  for (const block of allBlocks) {
+    const cb = collapseWs(block);
+    while (p < collapsedParas.length && !collapsedParas[p].includes(cb)) p++;
+    paraIndexOf.push(Math.min(p, collapsedParas.length - 1));
+  }
+  return paraIndexOf;
+}
+
 function renderBlockContent(
   block: string,
   onPhotoClick: (src: string) => void,
@@ -244,7 +268,7 @@ function renderBlockContent(
           alt={alt}
           loading="lazy"
           decoding="async"
-          onClick={() => onPhotoClick(src)}
+          onClick={(e) => { e.stopPropagation(); onPhotoClick(src); }}
           style={imgStyle}
         />
       </div>
@@ -288,7 +312,8 @@ function renderMarkdown(
   onPhotoClick: (src: string) => void,
   imageSize: 'thumb' | 'full',
   highlightQuery?: string,
-  onClearSearch?: () => void
+  onClearSearch?: () => void,
+  onJumpToBlock?: (paraIndex: number) => void
 ): { elements: React.ReactNode; matchCount: number } {
   if (!text) return { elements: null, matchCount: 0 };
 
@@ -297,9 +322,12 @@ function renderMarkdown(
 
   if (isFiltering) {
     const allBlocks = splitIntoBlocks(text);
-    const matchedBlocks = allBlocks.filter(b => matchesSearch(b, query));
+    const paraIndexOf = buildParaIndexOfBlock(text);
+    const matched = allBlocks
+      .map((block, i) => ({ block, paraIndex: paraIndexOf[i] }))
+      .filter(x => matchesSearch(x.block, query));
 
-    if (matchedBlocks.length === 0) {
+    if (matched.length === 0) {
       return {
         elements: (
           <div
@@ -349,13 +377,24 @@ function renderMarkdown(
     return {
       elements: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0' }}>
-          {matchedBlocks.map((block, idx) => (
+          {matched.map((item, idx) => (
             <div
               key={`match-${query}-${idx}`}
-              className="filtered-record-card"
+              className={`filtered-record-card${onJumpToBlock ? ' filtered-record-card--clickable' : ''}`}
               style={{
                 ['--record-index' as string]: idx,
               }}
+              onClick={onJumpToBlock ? () => onJumpToBlock(item.paraIndex) : undefined}
+              role={onJumpToBlock ? 'button' : undefined}
+              tabIndex={onJumpToBlock ? 0 : undefined}
+              onKeyDown={onJumpToBlock
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onJumpToBlock(item.paraIndex);
+                    }
+                  }
+                : undefined}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span
@@ -369,27 +408,44 @@ function renderMarkdown(
                 >
                   Запись {idx + 1}
                 </span>
+                {onJumpToBlock && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 2,
+                    }}
+                  >
+                    Перейти
+                    <ChevronRight size={12} />
+                  </span>
+                )}
               </div>
-              <div>{renderBlockContent(block, onPhotoClick, imageSize, query)}</div>
+              <div>{renderBlockContent(item.block, onPhotoClick, imageSize, query)}</div>
             </div>
           ))}
         </div>
       ),
-      matchCount: matchedBlocks.length,
+      matchCount: matched.length,
     };
   }
 
-  // Default normal mode: render all raw blocks as standard markdown
+  // Default normal mode: render all raw blocks as standard markdown.
+  // Каждый абзац помечен data-para-index — по нему поиск скроллит к нужному месту.
   const rawBlocks = text.split(/\n\s*\n/);
   const elements: React.ReactNode[] = [];
   let blockKey = 0;
+  let paraIdx = -1;
 
   for (const block of rawBlocks) {
     const trimmed = block.trim();
     if (!trimmed) continue;
+    paraIdx++;
 
     elements.push(
-      <div key={blockKey++} style={{ marginBottom: 12 }}>
+      <div key={blockKey++} data-para-index={paraIdx} style={{ marginBottom: 12 }}>
         {renderBlockContent(block, onPhotoClick, imageSize, undefined)}
       </div>
     );
@@ -404,6 +460,7 @@ export interface MarkdownTextProps {
   highlightQuery?: string;
   onClearSearch?: () => void;
   onMatchesCountChange?: (count: number) => void;
+  onJumpToBlock?: (paraIndex: number) => void;
 }
 
 function MarkdownText({
@@ -412,12 +469,13 @@ function MarkdownText({
   highlightQuery,
   onClearSearch,
   onMatchesCountChange,
+  onJumpToBlock,
 }: MarkdownTextProps) {
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
 
   const { elements, matchCount } = useMemo(
-    () => renderMarkdown(content, setPhotoSrc, imageSize, highlightQuery, onClearSearch),
-    [content, imageSize, highlightQuery, onClearSearch]
+    () => renderMarkdown(content, setPhotoSrc, imageSize, highlightQuery, onClearSearch, onJumpToBlock),
+    [content, imageSize, highlightQuery, onClearSearch, onJumpToBlock]
   );
 
   useEffect(() => {

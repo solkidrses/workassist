@@ -506,6 +506,29 @@ button.zinc-card:active,
   animation-delay: calc(var(--record-index, 0) * 60ms + 100ms);
 }
 
+.filtered-record-card--clickable {
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.filtered-record-card--clickable:active {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 124, 59, 0.4);
+  transform: scale(0.985);
+}
+
+/* Вспышка на абзаце, к которому прыгнули из результатов поиска */
+.jump-flash {
+  border-radius: 10px;
+  animation: jump-flash-bg 1.8s ease-out both;
+}
+
+@keyframes jump-flash-bg {
+  0% { background: rgba(255, 124, 59, 0.3); }
+  100% { background: rgba(255, 124, 59, 0); }
+}
+
 mark.search-highlight {
   background-color: rgba(255, 124, 59, 0.35);
   color: #fff;
