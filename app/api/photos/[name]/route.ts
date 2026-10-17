@@ -28,25 +28,33 @@ export async function GET(
     }
   }
 
-  const filePath = path.join(process.cwd(), 'data', 'uploads', name);
+  let filePath = path.join(process.cwd(), 'data', 'uploads', name);
+  let buffer: Buffer;
 
   try {
-    const buffer = await readFile(filePath);
-    const ext = path.extname(name).toLowerCase();
-    const contentType =
-      ext === '.png' ? 'image/png' :
-      ext === '.webp' ? 'image/webp' :
-      ext === '.gif' ? 'image/gif' :
-      'image/jpeg';
-
-    return new NextResponse(buffer, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600',
-        'X-Robots-Tag': 'noindex, nofollow',
-      },
-    });
+    buffer = await readFile(filePath);
   } catch {
-    return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    // Fallback: check legacy public/uploads location
+    try {
+      filePath = path.join(process.cwd(), 'public', 'uploads', name);
+      buffer = await readFile(filePath);
+    } catch {
+      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    }
   }
+
+  const ext = path.extname(name).toLowerCase();
+  const contentType =
+    ext === '.png' ? 'image/png' :
+    ext === '.webp' ? 'image/webp' :
+    ext === '.gif' ? 'image/gif' :
+    'image/jpeg';
+
+  return new NextResponse(new Uint8Array(buffer), {
+    headers: {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=3600',
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
+  });
 }

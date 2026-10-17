@@ -45,6 +45,7 @@ export async function POST(req: Request) {
 
     let text = '';
     let imageCount = 0;
+    let imageSaveErrorCount = 0;
 
     if (filename.endsWith('.txt')) {
       text = buffer.toString('utf-8');
@@ -65,6 +66,7 @@ export async function POST(req: Request) {
               return { src: `/api/photos/${name}` };
             } catch (err) {
               console.error('Failed to save docx image:', err);
+              imageSaveErrorCount++;
               return { src: '' };
             }
           }),
@@ -87,6 +89,7 @@ export async function POST(req: Request) {
       filename: file.name,
       suggestedTitle: titleFromFilename,
       imageCount,
+      imageWarning: imageSaveErrorCount > 0 ? `Не удалось сохранить ${imageSaveErrorCount} изображений из-за прав доступа` : undefined,
     });
   } catch (error) {
     console.error('Extract error:', error);

@@ -66,7 +66,12 @@ function parseInline(
   highlightQuery?: string,
   keyPrefix = 'inline'
 ): React.ReactNode[] {
-  const tokenRegex = /(!\[([^\]]*)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)|(`([^`]+)`)/g;
+  // Matches:
+  // 1: Markdown image ![alt](url)
+  // 4: HTML image <img ... src="..." ... />
+  // 6: Bold **text**
+  // 8: Code `code`
+  const tokenRegex = /(!\[([^\]]*)\]\(([^)]+)\))|(<img\b[^>]*?\bsrc=["']([^"']+)["'][^>]*?>)|(\*\*([^*]+)\*\*)|(`([^`]+)`)/gi;
   const nodes: React.ReactNode[] = [];
   let lastIdx = 0;
   let match: RegExpExecArray | null;
@@ -82,17 +87,26 @@ function parseInline(
       );
     }
 
-    if (match[1]) {
-      // Standalone/inline image
-      const alt = match[2];
-      const src = match[3];
+    if (match[1] || match[4]) {
+      // Standalone/inline image (Markdown or HTML)
+      let alt = '';
+      let src = '';
+      if (match[1]) {
+        alt = match[2];
+        src = match[3];
+      } else if (match[4]) {
+        src = match[5];
+        const altMatch = match[4].match(/\balt=["']([^"']*)["']/i);
+        alt = altMatch ? altMatch[1] : '';
+      }
+
       nodes.push(
         <span
           key={`${keyPrefix}-img-${key++}`}
           style={{
             display: imageSize === 'full' ? 'block' : 'inline-block',
             verticalAlign: 'middle',
-            margin: '6px 0',
+            margin: '8px 0',
             borderRadius: 8,
             overflow: 'hidden',
             width: imageSize === 'full' ? '100%' : 110,
@@ -117,17 +131,17 @@ function parseInline(
           />
         </span>
       );
-    } else if (match[4]) {
+    } else if (match[6]) {
       // Bold text
-      const boldContent = match[5];
+      const boldContent = match[7];
       nodes.push(
         <strong key={`${keyPrefix}-bld-${key++}`} style={{ fontWeight: 600, color: 'var(--text-main)' }}>
           {highlightQuery ? highlightText(boldContent, highlightQuery) : boldContent}
         </strong>
       );
-    } else if (match[6]) {
+    } else if (match[8]) {
       // Code snippet
-      const codeContent = match[7];
+      const codeContent = match[9];
       nodes.push(
         <code
           key={`${keyPrefix}-code-${key++}`}
@@ -178,9 +192,9 @@ export function splitIntoBlocks(text: string): string[] {
 
       const isHeader = /^#{1,6}\s+/.test(trimmedLine);
       const isListItem = /^([*+-]|\d+[.)]|•)\s+/.test(trimmedLine);
-      const isImg = /^!\[([^\]]*)\]\(([^)]+)\)$/.test(trimmedLine);
+      const isImg = /^(!\[([^\]]*)\]\(([^)]+)\)|<img\b[^>]*?\bsrc=["'][^"']+["'][^>]*?>)/i.test(trimmedLine);
 
-      if (isHeader || isImg) {
+      if (isHeader) {
         if (currentBlock.trim()) {
           blocks.push(currentBlock.trim());
           currentBlock = '';
@@ -192,6 +206,13 @@ export function splitIntoBlocks(text: string): string[] {
           currentBlock = '';
         }
         currentBlock = line;
+      } else if (isImg) {
+        // Прикрепляем скриншот к текущему шагу/абзацу, чтобы при поиске по тексту шага скриншот не отбрасывался!
+        if (currentBlock.trim()) {
+          currentBlock += '\n' + trimmedLine;
+        } else {
+          currentBlock = trimmedLine;
+        }
       } else {
         if (currentBlock) {
           currentBlock += '\n' + line;
@@ -246,11 +267,22 @@ function renderBlockContent(
   const trimmed = block.trim();
   if (!trimmed) return null;
 
-  // Standalone image block
+  // Standalone image block (Markdown or HTML)
   const singleImgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-  if (singleImgMatch) {
-    const alt = singleImgMatch[1];
-    const src = singleImgMatch[2];
+  const singleHtmlImgMatch = !singleImgMatch ? trimmed.match(/^<img\b[^>]*?\bsrc=["']([^"']+)["'][^>]*?>$/i) : null;
+
+  if (singleImgMatch || singleHtmlImgMatch) {
+    let alt = '';
+    let src = '';
+    if (singleImgMatch) {
+      alt = singleImgMatch[1];
+      src = singleImgMatch[2];
+    } else if (singleHtmlImgMatch) {
+      src = singleHtmlImgMatch[1];
+      const altMatch = singleHtmlImgMatch[0].match(/\balt=["']([^"']*)["']/i);
+      alt = altMatch ? altMatch[1] : '';
+    }
+
     const imgStyle: React.CSSProperties =
       imageSize === 'full'
         ? { width: '100%', height: 'auto', borderRadius: 10, cursor: 'pointer', display: 'block' }
@@ -275,9 +307,9 @@ function renderBlockContent(
     );
   }
 
-  // Heading check (#, ##, ###)
+  // Heading check (#, ##, ###) for single-line heading blocks
   const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
-  if (headingMatch) {
+  if (headingMatch && !trimmed.includes('\n')) {
     const level = headingMatch[1].length;
     const headingText = headingMatch[2];
     const fontSize = level === 1 ? 18 : level === 2 ? 16 : 15;
@@ -296,6 +328,21 @@ function renderBlockContent(
     if (lineIdx > 0) {
       paragraphChildren.push(<br key={`br-${lineIdx}`} />);
     }
+    const trimmedLine = line.trim();
+    // Check if individual line inside block is a heading
+    const lineHeadingMatch = trimmedLine.match(/^(#{1,6})\s+(.*)$/);
+    if (lineHeadingMatch) {
+      const level = lineHeadingMatch[1].length;
+      const headingText = lineHeadingMatch[2];
+      const fontSize = level === 1 ? 18 : level === 2 ? 16 : 15;
+      paragraphChildren.push(
+        <div key={`h-${lineIdx}`} style={{ fontWeight: 600, fontSize, color: 'var(--text-main)', margin: '6px 0 4px 0' }}>
+          {parseInline(headingText, onPhotoClick, imageSize, highlightQuery, `h-${lineIdx}`)}
+        </div>
+      );
+      return;
+    }
+
     const inlineNodes = parseInline(line, onPhotoClick, imageSize, highlightQuery, `ln-${lineIdx}`);
     paragraphChildren.push(...inlineNodes);
   });

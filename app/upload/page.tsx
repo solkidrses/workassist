@@ -92,6 +92,7 @@ export default function UploadPage() {
       } else {
         setText(data.text);
         if (data.suggestedTitle) setTitle(data.suggestedTitle);
+        if (data.imageWarning) setRequestError(data.imageWarning);
       }
     } catch {
       setRequestError('Ошибка сети при извлечении текста');

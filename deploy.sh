@@ -142,9 +142,14 @@ sudo ufw allow 443/tcp
 sudo ufw --force enable
 echo -e "${GREEN}  Firewall: ${SSH_PORT}, 80, 443 open${NC}"
 
+# --- Ensure data directories ---
+mkdir -p "$APP_DIR/data/uploads"
+sudo chmod -R 777 "$APP_DIR/data" 2>/dev/null || true
+
 # --- Build & start containers ---
 echo -e "${CYAN}Building Docker containers...${NC}"
 sudo docker compose up -d --build
+sudo chmod -R 777 "$APP_DIR/data" 2>/dev/null || true
 echo -e "${GREEN}  Containers started${NC}"
 
 # --- Wait for app to be healthy ---
