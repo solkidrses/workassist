@@ -16,7 +16,7 @@ echo "Pulling latest code..."
 git pull origin main
 
 echo "Rebuilding containers..."
-sudo docker compose up -d --build
+sudo docker compose up -d --build --force-recreate
 
 echo "Cleaning Docker cache..."
 sudo docker builder prune -f
