@@ -4,6 +4,7 @@ import { authorizeRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { rateLimit } from '@/lib/rateLimit';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { signPhotoPath, signMarkdownPhotos } from '@/lib/photoSign';
 
 type ChatMessage = {
   role: 'user' | 'assistant' | 'system';
@@ -211,9 +212,11 @@ export async function POST(req: Request) {
     
     if (results.length > 0) {
       contextStr = results.map(r => {
-        let entry = `[Title: ${r.title}, Tag: ${r.tag}]\n${r.fullText}`;
-        if (r.photoUrl) {
-          entry += `\n[Photo: ${r.photoUrl}]`;
+        const signedFullText = signMarkdownPhotos(r.fullText);
+        const signedPhotoUrl = signPhotoPath(r.photoUrl);
+        let entry = `[Title: ${r.title}, Tag: ${r.tag}]\n${signedFullText}`;
+        if (signedPhotoUrl) {
+          entry += `\n[Photo: ${signedPhotoUrl}]`;
         }
         return entry;
       }).join('\n\n---\n\n');
@@ -238,7 +241,7 @@ export async function POST(req: Request) {
 - Отвечай на русском языке, структурированно, используй Markdown (списки, код-блоки для команд).
 - Цитируй команды и конфигурации из инструкций точно, без изменений.
 - Будь кратким: только суть из инструкции, без воды и общих рассуждений.
-- ФОТО: если у использованной инструкции есть поле [Photo: URL], обязательно вставь изображение в ответ в формате Markdown: ![Скриншот](URL). Размести фото в конце ответа, только если оно реально помогает.`;
+- ФОТО: если у использованной инструкции есть поле [Photo: URL] или внутри текста есть изображения вида ![Скриншот](URL), обязательно вставь их в ответ в формате Markdown: ![Скриншот](URL), полностью сохраняя ссылку и все параметры подписи (?sig=...). Размести фото в конце ответа или у соответствующего шага, только если оно реально помогает.`;
 
     const contextSection = results.length > 0 ? `Context instructions:\n\n${contextStr}\n\n---\n\n` : '';
 
@@ -273,8 +276,9 @@ export async function POST(req: Request) {
         try {
           const userMsgId = crypto.randomUUID();
           const assistantMsgId = crypto.randomUUID();
+          const signedResponse = signMarkdownPhotos(fullResponse);
           await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "sessionId", "createdAt") VALUES (${userMsgId}, 'user', ${lastMessage.content}, ${activeSessionId}, NOW())`;
-          await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "sessionId", "createdAt") VALUES (${assistantMsgId}, 'assistant', ${fullResponse}, ${activeSessionId}, NOW())`;
+          await prisma.$executeRaw`INSERT INTO chat_messages (id, role, content, "sessionId", "createdAt") VALUES (${assistantMsgId}, 'assistant', ${signedResponse}, ${activeSessionId}, NOW())`;
         } catch (dbErr) {
           console.error('Failed to save chat history:', dbErr);
         }

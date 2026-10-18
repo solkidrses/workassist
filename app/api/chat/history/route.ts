@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { authorizeRequest, TELEGRAM_AUTH_ERROR } from '@/lib/requestAuth';
 import { NextResponse } from 'next/server';
+import { signMarkdownPhotos } from '@/lib/photoSign';
 
 type ChatHistoryRow = {
   id: string;
@@ -48,7 +49,12 @@ export async function GET(req: Request) {
           LIMIT 100
         `;
 
-    return NextResponse.json({ success: true, data: rows });
+    const signedRows = rows.map(r => ({
+      ...r,
+      content: r.role === 'assistant' ? signMarkdownPhotos(r.content) : r.content,
+    }));
+
+    return NextResponse.json({ success: true, data: signedRows });
   } catch (error) {
     console.error('Chat history GET error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

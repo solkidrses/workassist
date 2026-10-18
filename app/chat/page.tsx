@@ -500,12 +500,12 @@ export default function ChatPage() {
                   style={{ width: '100%', maxWidth: 240, borderRadius: 8, marginBottom: 8, display: 'block' }}
                 />
               )}
-              <div className="message-text" style={{ whiteSpace: 'pre-wrap' }}>
+              <div className="message-text" style={{ whiteSpace: m.role === 'assistant' ? 'normal' : 'pre-wrap' }}>
                 {m.role === 'assistant' ? (
                   isLoading && idx === messages.length - 1 ? (
-                    m.content
+                    <span style={{ whiteSpace: 'pre-wrap' }}>{m.content}</span>
                   ) : (
-                    <MarkdownText content={m.content} />
+                    <MarkdownText content={m.content} imageSize="full" />
                   )
                 ) : (
                   (() => {

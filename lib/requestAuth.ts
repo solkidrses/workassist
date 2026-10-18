@@ -64,7 +64,8 @@ export async function authorizeRequest(req: Request): Promise<AuthResult> {
     };
   }
 
-  const initData = req.headers.get('x-telegram-init-data');
+  const url = new URL(req.url);
+  const initData = req.headers.get('x-telegram-init-data') || url.searchParams.get('initData');
   if (!initData) {
     return { ok: false, code: 'INVALID' };
   }

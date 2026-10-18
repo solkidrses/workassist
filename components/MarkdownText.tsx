@@ -3,6 +3,18 @@
 import React, { useState, useMemo, memo, useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight } from 'lucide-react';
+import { useAccessCheck } from '@/lib/AccessProvider';
+
+function resolvePhotoUrl(src: string, initData?: string): string {
+  if (!src || typeof src !== 'string') return src;
+  if (!src.startsWith('/api/photos/')) return src;
+  if (src.includes('sig=') || src.includes('initData=')) return src;
+  if (initData) {
+    const sep = src.includes('?') ? '&' : '?';
+    return `${src}${sep}initData=${encodeURIComponent(initData)}`;
+  }
+  return src;
+}
 
 const subscribeNoop = () => () => {};
 
@@ -64,7 +76,8 @@ function parseInline(
   onPhotoClick: (src: string) => void,
   imageSize: 'thumb' | 'full',
   highlightQuery?: string,
-  keyPrefix = 'inline'
+  keyPrefix = 'inline',
+  initData?: string
 ): React.ReactNode[] {
   // Matches:
   // 1: Markdown image ![alt](url)
@@ -90,15 +103,16 @@ function parseInline(
     if (match[1] || match[4]) {
       // Standalone/inline image (Markdown or HTML)
       let alt = '';
-      let src = '';
+      let rawSrc = '';
       if (match[1]) {
         alt = match[2];
-        src = match[3];
+        rawSrc = match[3];
       } else if (match[4]) {
-        src = match[5];
+        rawSrc = match[5];
         const altMatch = match[4].match(/\balt=["']([^"']*)["']/i);
         alt = altMatch ? altMatch[1] : '';
       }
+      const src = resolvePhotoUrl(rawSrc, initData);
 
       nodes.push(
         <span
@@ -262,7 +276,8 @@ function renderBlockContent(
   block: string,
   onPhotoClick: (src: string) => void,
   imageSize: 'thumb' | 'full',
-  highlightQuery?: string
+  highlightQuery?: string,
+  initData?: string
 ): React.ReactNode {
   const trimmed = block.trim();
   if (!trimmed) return null;
@@ -273,15 +288,16 @@ function renderBlockContent(
 
   if (singleImgMatch || singleHtmlImgMatch) {
     let alt = '';
-    let src = '';
+    let rawSrc = '';
     if (singleImgMatch) {
       alt = singleImgMatch[1];
-      src = singleImgMatch[2];
+      rawSrc = singleImgMatch[2];
     } else if (singleHtmlImgMatch) {
-      src = singleHtmlImgMatch[1];
+      rawSrc = singleHtmlImgMatch[1];
       const altMatch = singleHtmlImgMatch[0].match(/\balt=["']([^"']*)["']/i);
       alt = altMatch ? altMatch[1] : '';
     }
+    const src = resolvePhotoUrl(rawSrc, initData);
 
     const imgStyle: React.CSSProperties =
       imageSize === 'full'
@@ -315,7 +331,7 @@ function renderBlockContent(
     const fontSize = level === 1 ? 18 : level === 2 ? 16 : 15;
     return (
       <div style={{ fontWeight: 600, fontSize, color: 'var(--text-main)', margin: '4px 0 6px 0' }}>
-        {parseInline(headingText, onPhotoClick, imageSize, highlightQuery)}
+        {parseInline(headingText, onPhotoClick, imageSize, highlightQuery, 'inline', initData)}
       </div>
     );
   }
@@ -337,13 +353,13 @@ function renderBlockContent(
       const fontSize = level === 1 ? 18 : level === 2 ? 16 : 15;
       paragraphChildren.push(
         <div key={`h-${lineIdx}`} style={{ fontWeight: 600, fontSize, color: 'var(--text-main)', margin: '6px 0 4px 0' }}>
-          {parseInline(headingText, onPhotoClick, imageSize, highlightQuery, `h-${lineIdx}`)}
+          {parseInline(headingText, onPhotoClick, imageSize, highlightQuery, `h-${lineIdx}`, initData)}
         </div>
       );
       return;
     }
 
-    const inlineNodes = parseInline(line, onPhotoClick, imageSize, highlightQuery, `ln-${lineIdx}`);
+    const inlineNodes = parseInline(line, onPhotoClick, imageSize, highlightQuery, `ln-${lineIdx}`, initData);
     paragraphChildren.push(...inlineNodes);
   });
 
@@ -360,7 +376,8 @@ function renderMarkdown(
   imageSize: 'thumb' | 'full',
   highlightQuery?: string,
   onClearSearch?: () => void,
-  onJumpToBlock?: (paraIndex: number) => void
+  onJumpToBlock?: (paraIndex: number) => void,
+  initData?: string
 ): { elements: React.ReactNode; matchCount: number } {
   if (!text) return { elements: null, matchCount: 0 };
 
@@ -470,7 +487,7 @@ function renderMarkdown(
                   </span>
                 )}
               </div>
-              <div>{renderBlockContent(item.block, onPhotoClick, imageSize, query)}</div>
+              <div>{renderBlockContent(item.block, onPhotoClick, imageSize, query, initData)}</div>
             </div>
           ))}
         </div>
@@ -493,7 +510,7 @@ function renderMarkdown(
 
     elements.push(
       <div key={blockKey++} data-para-index={paraIdx} style={{ marginBottom: 12 }}>
-        {renderBlockContent(block, onPhotoClick, imageSize, undefined)}
+        {renderBlockContent(block, onPhotoClick, imageSize, undefined, initData)}
       </div>
     );
   }
@@ -519,10 +536,12 @@ function MarkdownText({
   onJumpToBlock,
 }: MarkdownTextProps) {
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
+  const { authHeaders } = useAccessCheck();
+  const initData = authHeaders?.['x-telegram-init-data'];
 
   const { elements, matchCount } = useMemo(
-    () => renderMarkdown(content, setPhotoSrc, imageSize, highlightQuery, onClearSearch, onJumpToBlock),
-    [content, imageSize, highlightQuery, onClearSearch, onJumpToBlock]
+    () => renderMarkdown(content, setPhotoSrc, imageSize, highlightQuery, onClearSearch, onJumpToBlock, initData),
+    [content, imageSize, highlightQuery, onClearSearch, onJumpToBlock, initData]
   );
 
   useEffect(() => {
